@@ -24,7 +24,8 @@ def get_source_metadata_for_transformation():
     source_data_dict = MetadataLedger.objects.values(
         'source_metadata').filter(
         source_metadata_validation_status='Y',
-        record_lifecycle_status='Active').exclude(
+        record_lifecycle_status='Active',
+        source_metadata_transformation_date=None).exclude(
         source_metadata_validation_date=None)
 
     return source_data_dict
@@ -84,10 +85,20 @@ def store_transformed_source_metadata(key_value, key_value_hash,
                                       target_data_dict,
                                       hash_value, supplemental_metadata):
     """Storing target metadata in MetadataLedger"""
-    data_for_transformation = MetadataLedger.objects.filter(
-        source_metadata_key=key_value,
+
+    source_extraction_date = MetadataLedger.objects.values_list(
+        "source_metadata_extraction_date", flat=True).get(
+        source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active',
-        source_metadata_validation_status='Y'
+        source_metadata_validation_status='Y',
+        source_metadata_transformation_date=None
+    )
+
+    data_for_transformation = MetadataLedger.objects.filter(
+        source_metadata_key_hash=key_value_hash,
+        record_lifecycle_status='Active',
+        source_metadata_validation_status='Y',
+        source_metadata_transformation_date=None
     )
 
     if data_for_transformation.values("target_metadata_hash") != hash_value:
@@ -102,23 +113,11 @@ def store_transformed_source_metadata(key_value, key_value_hash,
 
     # check if metadata has corresponding supplemental values and store
     if supplemental_metadata:
-        source_extraction_date = MetadataLedger.objects.values_list(
-            "source_metadata_extraction_date", flat=True).get(
-            source_metadata_key=key_value,
-            record_lifecycle_status='Active',
-            source_metadata_validation_status='Y')
-
-        transformation_date = MetadataLedger.objects.values_list(
-            "source_metadata_transformation_date", flat=True).get(
-            source_metadata_key=key_value,
-            record_lifecycle_status='Active',
-            source_metadata_validation_status='Y')
-
-        SupplementalLedger.objects.get_or_create(
+        SupplementalLedger.objects.create(
             supplemental_metadata_hash=hash_value,
             supplemental_metadata_key=key_value,
             supplemental_metadata_key_hash=key_value_hash,
-            supplemental_metadata_transformation_date=transformation_date,
+            supplemental_metadata_transformation_date=timezone.now(),
             supplemental_metadata_extraction_date=source_extraction_date,
             supplemental_metadata=supplemental_metadata,
             record_lifecycle_status='Active')

@@ -3,8 +3,8 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from openlxp_django_xia.management.utils.xia_internal import (
-    dict_flatten, required_recommended_logs)
+from openlxp_django_xia.management.utils.xia_internal import (dict_flatten,
+                                                required_recommended_logs)
 from openlxp_django_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_source_validation_schema)
 from openlxp_django_xia.models import MetadataLedger
@@ -32,13 +32,21 @@ def store_source_metadata_validation_status(source_data_dict,
                                             record_status_result):
     """Storing validation result in MetadataLedger"""
 
-    source_data_dict.filter(
-        source_metadata_key_hash=key_value_hash).update(
-        source_metadata_validation_status=validation_result,
-        source_metadata_validation_date=timezone.now(),
-        record_lifecycle_status=record_status_result,
-        metadata_record_inactivation_date=timezone.now()
-    )
+    if validation_result == 'Y':
+        source_data_dict.filter(
+            source_metadata_key_hash=key_value_hash).update(
+            source_metadata_validation_status=validation_result,
+            source_metadata_validation_date=timezone.now(),
+            record_lifecycle_status=record_status_result
+        )
+    else:
+        source_data_dict.filter(
+            source_metadata_key_hash=key_value_hash).update(
+            source_metadata_validation_status=validation_result,
+            source_metadata_validation_date=timezone.now(),
+            record_lifecycle_status=record_status_result,
+            metadata_record_inactivation_date=timezone.now()
+        )
 
 
 def validate_source_using_key(source_data_dict, required_column_list,

@@ -14,9 +14,12 @@ import mimetypes
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -78,18 +81,20 @@ WSGI_APPLICATION = 'openlxp_xia_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
+#
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('DB_NAME'),
         'USER': os.environ.get('DB_USER'),
         'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': 'localhost',
+        'HOST': os.environ.get('DB_HOST'),
         'PORT': 3306,
     }
 }
 
+if 'test' in sys.argv:
+    DATABASES['default'] = {'ENGINE': 'django.db.backends.sqlite3'}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -130,13 +135,14 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+LOG_PATH = os.environ.get('LOG_PATH')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
 
     'loggers': {
         'dict_config_logger': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file_logs'],
             'level': 'INFO',
             'propagate': True,
         },
@@ -148,6 +154,13 @@ LOGGING = {
             'stream': sys.stdout,
             'formatter': 'simpleRe',
         },
+        'file_logs': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': LOG_PATH,
+            'formatter': 'simpleRe',
+        },
+
     },
 
     'formatters': {

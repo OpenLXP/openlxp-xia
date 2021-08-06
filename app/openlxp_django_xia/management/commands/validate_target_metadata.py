@@ -8,7 +8,7 @@ from openlxp_django_xia.management.utils.xia_internal import (dict_flatten, get_
                                                 required_recommended_logs)
 from openlxp_django_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_target_validation_schema)
-from openlxp_django_xia.models import MetadataLedger
+from openlxp_django_xia.models import MetadataLedger, SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -20,22 +20,62 @@ def get_target_metadata_for_validation():
         "Accessing target metadata from MetadataLedger to be validated")
     target_data_dict = MetadataLedger.objects.values(
         'target_metadata').filter(target_metadata_validation_status='',
-                                  record_lifecycle_status='Active'
+                                  record_lifecycle_status='Active',
+                                  target_metadata_transmission_date=None
                                   ).exclude(
         source_metadata_transformation_date=None)
     return target_data_dict
+
+
+def update_previous_instance_in_metadata(key_value_hash):
+    """Update older instances of record to inactive status"""
+    # Setting record_status & deleted_date for updated record
+    MetadataLedger.objects.filter(
+        source_metadata_key_hash=key_value_hash,
+        record_lifecycle_status='Active'). \
+        exclude(target_metadata_validation_date=None).update(
+        metadata_record_inactivation_date=timezone.now())
+    MetadataLedger.objects.filter(
+        source_metadata_key_hash=key_value_hash,
+        record_lifecycle_status='Active'). \
+        exclude(target_metadata_validation_date=None).update(
+        record_lifecycle_status='Inactive')
+
+    SupplementalLedger.objects.filter(
+        supplemental_metadata_key_hash=key_value_hash,
+        record_lifecycle_status='Active'). \
+        exclude(supplemental_metadata_validation_date=None).update(
+        metadata_record_inactivation_date=timezone.now())
+    SupplementalLedger.objects.filter(
+        supplemental_metadata_key_hash=key_value_hash,
+        record_lifecycle_status='Active'). \
+        exclude(supplemental_metadata_validation_date=None).update(
+        record_lifecycle_status='Inactive')
 
 
 def store_target_metadata_validation_status(target_data_dict, key_value_hash,
                                             validation_result,
                                             record_status_result):
     """Storing validation result in MetadataLedger"""
-    target_data_dict.filter(
-        target_metadata_key_hash=key_value_hash).update(
-        target_metadata_validation_status=validation_result,
-        target_metadata_validation_date=timezone.now(),
-        record_lifecycle_status=record_status_result,
-        metadata_record_inactivation_date=timezone.now())
+    if validation_result == 'Y':
+        update_previous_instance_in_metadata(key_value_hash)
+        target_data_dict.filter(
+            target_metadata_key_hash=key_value_hash).update(
+            target_metadata_validation_status=validation_result,
+            target_metadata_validation_date=timezone.now(),
+            record_lifecycle_status=record_status_result)
+
+    else:
+        target_data_dict.filter(
+            target_metadata_key_hash=key_value_hash).update(
+            target_metadata_validation_status=validation_result,
+            target_metadata_validation_date=timezone.now(),
+            record_lifecycle_status=record_status_result,
+            metadata_record_inactivation_date=timezone.now())
+
+    SupplementalLedger.objects.filter(
+        supplemental_metadata_key_hash=key_value_hash).update(
+        supplemental_metadata_validation_date=timezone.now())
 
 
 def validate_target_using_key(target_data_dict, required_column_list,
