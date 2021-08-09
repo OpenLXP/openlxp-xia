@@ -6,12 +6,12 @@ from ddt import data, ddt, unpack
 from django.test import tag
 
 from django_openlxp_xia.management.utils.notification import (
-    send_notifications, check_if_email_verified)
+    check_if_email_verified, send_notifications)
 from django_openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, flatten_dict_object, flatten_list_object,
-    get_key_dict, get_publisher_detail,
-    get_target_metadata_key_value, replace_field_on_target_schema,
-    type_cast_overwritten_values, update_flattened_object)
+    dict_flatten, flatten_dict_object, flatten_list_object, get_key_dict,
+    get_publisher_detail, get_target_metadata_key_value,
+    replace_field_on_target_schema, type_cast_overwritten_values,
+    update_flattened_object)
 from django_openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from django_openlxp_xia.management.utils.xss_client import (

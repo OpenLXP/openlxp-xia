@@ -1,34 +1,32 @@
 import logging
+from unittest.mock import patch
+
 from ddt import ddt
 from django.test import tag
-from .test_setup import TestSetUp
-from unittest.mock import patch
 from django.utils import timezone
-
-from django_openlxp_xia.management.commands.validate_source_metadata import (
-    get_source_metadata_for_validation, validate_source_using_key)
-
-from django_openlxp_xia.management.commands.transform_source_metadata import (
-    create_supplemental_metadata, create_target_metadata_dict,
-    get_source_metadata_for_transformation, transform_source_using_key)
-
-from django_openlxp_xia.management.commands.validate_target_metadata import (
-    get_target_metadata_for_validation, validate_target_using_key)
-
-from django_openlxp_xia.management.commands.load_target_metadata import (
-    get_records_to_load_into_xis, post_data_to_xis,
-    rename_metadata_ledger_fields)
-
-from django_openlxp_xia.management.commands.load_supplemental_metadata import (
-    load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
-    rename_supplemental_metadata_fields)
 
 from django_openlxp_xia.management.commands.conformance_alerts import \
     send_log_email
+from django_openlxp_xia.management.commands.load_supplemental_metadata import (
+    load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
+    rename_supplemental_metadata_fields)
+from django_openlxp_xia.management.commands.load_target_metadata import (
+    get_records_to_load_into_xis, post_data_to_xis,
+    rename_metadata_ledger_fields)
+from django_openlxp_xia.management.commands.transform_source_metadata import (
+    create_supplemental_metadata, create_target_metadata_dict,
+    get_source_metadata_for_transformation, transform_source_using_key)
+from django_openlxp_xia.management.commands.validate_source_metadata import (
+    get_source_metadata_for_validation, validate_source_using_key)
+from django_openlxp_xia.management.commands.validate_target_metadata import (
+    get_target_metadata_for_validation, validate_target_using_key)
+from django_openlxp_xia.models import (MetadataLedger,
+                                       ReceiverEmailConfiguration,
+                                       SenderEmailConfiguration,
+                                       SupplementalLedger, XIAConfiguration,
+                                       XISConfiguration)
 
-from django_openlxp_xia.models import (
-    MetadataLedger, ReceiverEmailConfiguration, SenderEmailConfiguration,
-    SupplementalLedger, XIAConfiguration, XISConfiguration)
+from .test_setup import TestSetUp
 
 logger = logging.getLogger('dict_config_logger')
 
