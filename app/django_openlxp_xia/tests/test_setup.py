@@ -104,7 +104,8 @@ class TestSetUp(TestCase):
                     "CourseAdditionalInformation": "None"
                 },
                 "CourseInstance": {
-                    "CourseURL": "https://agent.tes.com/ui/lms-learning-details"
+                    "CourseURL":
+                        "https://agent.tes.com/ui/lms-learning-details"
                 },
                 "General_Information": {
                     "EndDate": "end_date",
@@ -201,7 +202,7 @@ class TestSetUp(TestCase):
         }
 
         self.target_key_value_invalid = "TestData 1234_AGENT"
-        self.target_key_value_hash_invalid = "eaf3e57b7f21b4d813f1258fb4ebf89d"
+        self.target_key_value_hash_invalid = "d9eccc6651c0b95db975aca43fa9b481"
         self.target_hash_value_invalid = "eaf3e57b7f21b4d813f1258fb4ebf89d"
 
         self.source_target_mapping = {

@@ -5,24 +5,20 @@ from unittest.mock import patch
 from ddt import data, ddt, unpack
 from django.test import tag
 
-from openlxp_django_xia.management.utils.notification import send_notifications
-from openlxp_django_xia.management.utils.xia_internal import (dict_flatten,
-                                                flatten_dict_object,
-                                                flatten_list_object,
-                                                get_key_dict,
-                                                get_publisher_detail,
-                                                get_source_metadata_key_value,
-                                                get_target_metadata_key_value,
-                                                replace_field_on_target_schema,
-                                                type_cast_overwritten_values,
-                                                update_flattened_object)
-from openlxp_django_xia.management.utils.xis_client import (
+from django_openlxp_xia.management.utils.notification import (
+    send_notifications, check_if_email_verified)
+from django_openlxp_xia.management.utils.xia_internal import (
+    dict_flatten, flatten_dict_object, flatten_list_object,
+    get_key_dict, get_publisher_detail,
+    get_target_metadata_key_value, replace_field_on_target_schema,
+    type_cast_overwritten_values, update_flattened_object)
+from django_openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
-from openlxp_django_xia.management.utils.xss_client import (
+from django_openlxp_xia.management.utils.xss_client import (
     get_aws_bucket_name, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
     get_target_validation_schema)
-from openlxp_django_xia.models import XIAConfiguration, XISConfiguration
+from django_openlxp_xia.models import XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
 
@@ -38,7 +34,7 @@ class UtilsTests(TestSetUp):
 
     def test_get_publisher_detail(self):
         """Test to retrieve publisher from XIA configuration"""
-        with patch('openlxp_django_xia.management.utils.xia_internal'
+        with patch('django_openlxp_xia.management.utils.xia_internal'
                    '.XIAConfiguration.objects') as xiaCfg:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xiaCfg.first.return_value = xiaConfig
@@ -55,23 +51,6 @@ class UtilsTests(TestSetUp):
         }
         result = get_key_dict(first_value, second_value)
         self.assertEquals(result, expected_result)
-
-    # @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
-    # @unpack
-    # def test_get_source_metadata_key_value(self, first_value, second_value):
-    #     """Test key dictionary creation for source"""
-    #     test_dict = {
-    #         'LearningResourceIdentifier': first_value,
-    #         'SOURCESYSTEM': second_value
-    #     }
-    #
-    #     expected_key = first_value + '_' + second_value
-    #     expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
-    #         hexdigest()
-    #
-    #     result_key_dict = get_source_metadata_key_value(test_dict)
-    #     self.assertEqual(result_key_dict['key_value'], expected_key)
-    #     self.assertEqual(result_key_dict['key_value_hash'], expected_key_hash)
 
     def test_replace_field_on_target_schema(self):
         """test to check if values under educational context are replaced"""
@@ -124,14 +103,14 @@ class UtilsTests(TestSetUp):
                                    {"sub_key3": "sub_value3"}]}
 
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -153,13 +132,15 @@ class UtilsTests(TestSetUp):
         flatten_dict = {}
         required_list = ['a.b', 'a.c', 'd']
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_'
                     'object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_'
                     'object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
@@ -180,13 +161,16 @@ class UtilsTests(TestSetUp):
         flatten_dict = {}
         required_list = ['a.b', 'd']
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') \
                 as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_'
                     'object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_'
                     'object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_update_flattened
             mock_flatten_dict.return_value = mock_flatten_list()
@@ -202,14 +186,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -228,14 +212,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -254,14 +238,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -280,14 +264,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -307,14 +291,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -334,14 +318,14 @@ class UtilsTests(TestSetUp):
         prefix = 'test'
         flatten_dict = []
         with patch(
-                'openlxp_django_xia.management.utils.xia_internal.flatten_list_object') \
-                as mock_flatten_list, \
+                'django_openlxp_xia.management.utils.xia_internal.'
+                'flatten_list_object') as mock_flatten_list, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.flatten_dict_'
-                    'object') as mock_flatten_dict, \
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'flatten_dict_object') as mock_flatten_dict, \
                 patch(
-                    'openlxp_django_xia.management.utils.xia_internal.update_flattened_'
-                    'object') as mock_update_flattened:
+                    'django_openlxp_xia.management.utils.xia_internal.'
+                    'update_flattened_object') as mock_update_flattened:
             mock_flatten_list.return_value = mock_flatten_list
             mock_flatten_list.return_value = None
             mock_flatten_dict.return_value = mock_flatten_dict
@@ -376,7 +360,7 @@ class UtilsTests(TestSetUp):
 
     def test_get_xis_metadata_api_endpoint(self):
         """Test to retrieve xis_metadata_api_endpoint from XIS configuration"""
-        with patch('openlxp_django_xia.management.utils.xis_client'
+        with patch('django_openlxp_xia.management.utils.xis_client'
                    '.XISConfiguration.objects') as xisCfg:
             xisConfig = XISConfiguration(
                 xis_metadata_api_endpoint=self.xis_api_endpoint_url)
@@ -388,7 +372,7 @@ class UtilsTests(TestSetUp):
     def test_get_xis_supplemental_metadata_api_endpoint(self):
         """Test to retrieve xis_supplemental_api_endpoint from XIS
         configuration"""
-        with patch('openlxp_django_xia.management.utils.xis_client'
+        with patch('django_openlxp_xia.management.utils.xis_client'
                    '.XISConfiguration.objects') as xisCfg:
             xisConfig = XISConfiguration(
                 xis_supplemental_api_endpoint=self.supplemental_api_endpoint)
@@ -406,11 +390,11 @@ class UtilsTests(TestSetUp):
 
     def test_get_source_validation_schema(self):
         """Test to retrieve source_metadata_schema from XIA configuration"""
-        with patch('openlxp_django_xia.management.utils.xss_client'
+        with patch('django_openlxp_xia.management.utils.xss_client'
                    '.XIAConfiguration.objects') as xdsCfg, \
-                patch('openlxp_django_xia.management.utils.xss_client'
+                patch('django_openlxp_xia.management.utils.xss_client'
                       '.read_json_data') as read_obj, \
-                patch('openlxp_django_xia.management.utils.xss_client'
+                patch('django_openlxp_xia.management.utils.xss_client'
                       '.get_aws_bucket_name', return_value="eccschema"):
             xiaConfig = XIAConfiguration(
                 source_metadata_schema='AGENT_source_validate_schema.json')
@@ -432,9 +416,9 @@ class UtilsTests(TestSetUp):
 
     def test_get_target_validation_schema(self):
         """Test to retrieve target_metadata_schema from XIA configuration"""
-        with patch('openlxp_django_xia.management.utils.xss_client'
+        with patch('django_openlxp_xia.management.utils.xss_client'
                    '.XIAConfiguration.objects') as xiaconfigobj, \
-                patch('openlxp_django_xia.management.utils.xss_client'
+                patch('django_openlxp_xia.management.utils.xss_client'
                       '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
                 target_metadata_schema='p2881_target_validation_schema.json')
@@ -447,12 +431,13 @@ class UtilsTests(TestSetUp):
 
     def test_get_target_metadata_for_transformation(self):
         """Test to retrieve target metadata schema from XIA configuration """
-        with patch('openlxp_django_xia.management.utils.xss_client'
+        with patch('django_openlxp_xia.management.utils.xss_client'
                    '.XIAConfiguration.objects') as xia_config_obj, \
-                patch('openlxp_django_xia.management.utils.xss_client'
+                patch('django_openlxp_xia.management.utils.xss_client'
                       '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
-                source_target_mapping='AGENT_p2881_target_metadata_schema.json')
+                source_target_mapping='AGENT_p2881_target_metadata_schema.json'
+            )
             xia_config_obj.return_value = xiaConfig
             read_obj.return_value = read_obj
             read_obj.return_value = self.target_data_dict
@@ -463,9 +448,27 @@ class UtilsTests(TestSetUp):
     # Test cases for NOTIFICATION
     def test_send_notifications(self):
         """Test for function to send emails of log file to personas"""
-        with patch('openlxp_django_xia.management.utils.notification'
+        with patch('django_openlxp_xia.management.utils.notification'
                    '.EmailMessage') as mock_send, \
-                patch('openlxp_django_xia.management.utils.notification'
+                patch('django_openlxp_xia.management.utils.notification'
                       '.boto3.client'):
             send_notifications(self.receive_email_list, self.sender_email)
             self.assertEqual(mock_send.call_count, 2)
+
+    def test_check_if_email_verified(self):
+        """Test to check if email id from user is verified """
+        with patch('django_openlxp_xia.management.utils.notification'
+                   '.list_email_verified') as mock_list:
+            mock_list.return_value = self.receive_email_list
+            email_value = 'receiver1@openlxp.com'
+            return_val = check_if_email_verified(email_value)
+            self.assertFalse(return_val)
+
+    def test_check_if_email_not_verified(self):
+        """Test to check if email id from user is verified """
+        with patch('django_openlxp_xia.management.utils.notification'
+                   '.list_email_verified') as mock_list:
+            mock_list.return_value = self.receive_email_list
+            email_value = 'receiver2@openlxp.com'
+            return_val = check_if_email_verified(email_value)
+            self.assertTrue(return_val)

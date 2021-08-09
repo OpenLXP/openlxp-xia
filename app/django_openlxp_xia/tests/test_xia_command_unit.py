@@ -5,30 +5,30 @@ from .test_setup import TestSetUp
 from unittest.mock import patch
 from django.utils import timezone
 
-from openlxp_django_xia.management.commands.validate_source_metadata import (
+from django_openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 
-from openlxp_django_xia.management.commands.transform_source_metadata import (
+from django_openlxp_xia.management.commands.transform_source_metadata import (
     create_supplemental_metadata, create_target_metadata_dict,
     get_source_metadata_for_transformation, transform_source_using_key)
 
-from openlxp_django_xia.management.commands.validate_target_metadata import (
+from django_openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
 
-from openlxp_django_xia.management.commands.load_target_metadata import (
+from django_openlxp_xia.management.commands.load_target_metadata import (
     get_records_to_load_into_xis, post_data_to_xis,
     rename_metadata_ledger_fields)
 
-from openlxp_django_xia.management.commands.load_supplemental_metadata import (
+from django_openlxp_xia.management.commands.load_supplemental_metadata import (
     load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
     rename_supplemental_metadata_fields)
 
-from openlxp_django_xia.management.commands.conformance_alerts import send_log_email
+from django_openlxp_xia.management.commands.conformance_alerts import \
+    send_log_email
 
-from openlxp_django_xia.models import (MetadataFieldOverwrite, MetadataLedger,
-                     ReceiverEmailConfiguration, SenderEmailConfiguration,
-                     SupplementalLedger, XIAConfiguration,
-                     XISConfiguration)
+from django_openlxp_xia.models import (
+    MetadataLedger, ReceiverEmailConfiguration, SenderEmailConfiguration,
+    SupplementalLedger, XIAConfiguration, XISConfiguration)
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -42,7 +42,7 @@ class CommandTests(TestSetUp):
     def test_get_source_metadata_for_validation(self):
         """Test to Retrieving source metadata from MetadataLedger that needs
         to be validated"""
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_source_metadata.MetadataLedger.objects') \
                 as meta_obj:
             meta_ledger = MetadataLedger.objects.values(
@@ -63,7 +63,7 @@ class CommandTests(TestSetUp):
                  'source_metadata': self.source_metadata}]
 
         recommended_column_name = []
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_source_metadata'
                    '.store_source_metadata_validation_status',
                    return_value=None) as mock_store_source_valid_status:
@@ -77,7 +77,7 @@ class CommandTests(TestSetUp):
             names with no data"""
         data = []
         recommended_column_name = []
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_source_metadata'
                    '.store_source_metadata_validation_status',
                    return_value=None) as mock_store_source_valid_status:
@@ -91,7 +91,7 @@ class CommandTests(TestSetUp):
     def test_get_source_metadata_for_transformation(self):
         """Test to Retrieving Source metadata from MetadataLedger that needs
         to be transformed"""
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'transform_source_metadata'
                    '.MetadataLedger.objects') as meta_obj:
             target_data_dict = MetadataLedger.objects.values(
@@ -118,9 +118,9 @@ class CommandTests(TestSetUp):
         """Test for a function to replace and transform source data to target
         data for using target mapping schema"""
         expected_data_dict = {0: self.target_metadata}
-        with patch('openlxp_django_xia.management.utils.xia_internal.'
+        with patch('django_openlxp_xia.management.utils.xia_internal.'
                    'dict_flatten', return_value=self.source_metadata), \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'transform_source_metadata.create_supplemental_metadata',
                       return_value=None):
             result_data_dict, supplemental_data = create_target_metadata_dict(
@@ -136,10 +136,10 @@ class CommandTests(TestSetUp):
         """Test for transforming source data using target metadata schema
         with no data"""
         data = []
-        with patch('openlxp_django_xia.management.utils.xia_internal'
+        with patch('django_openlxp_xia.management.utils.xia_internal'
                    '.get_target_metadata_key_value',
                    return_value=None), \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'transform_source_metadata'
                       '.store_transformed_source_metadata',
                       return_value=None) as mock_store_transformed_source:
@@ -161,10 +161,10 @@ class CommandTests(TestSetUp):
         more than one row"""
         data = [{0: self.source_metadata},
                 {1: self.source_metadata}]
-        with patch('openlxp_django_xia.management.utils.xia_internal'
+        with patch('django_openlxp_xia.management.utils.xia_internal'
                    '.get_target_metadata_key_value',
                    return_value=None), \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'transform_source_metadata'
                       '.store_transformed_source_metadata',
                       return_value=None) as mock_store_transformed_source:
@@ -186,7 +186,7 @@ class CommandTests(TestSetUp):
     def test_get_target_metadata_for_validation(self):
         """Test to Retrieving target metadata from MetadataLedger that needs
         to be validated"""
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_target_metadata.MetadataLedger.objects') \
                 as meta_obj:
             target_data_dict = MetadataLedger.objects.values(
@@ -213,10 +213,10 @@ class CommandTests(TestSetUp):
             'General_Information.EndDate', 'Course.CourseTitle'}
         recommended_column_name = {'Technical_Information.Thumbnail',
                                    'CourseInstance.Thumbnail'}
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_target_metadata.get_target_metadata_key_value',
                    return_value=None) as mock_get_target_kv, \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'validate_target_metadata'
                       '.store_target_metadata_validation_status',
                       return_value=None) as mock_store_target_valid_status:
@@ -236,11 +236,11 @@ class CommandTests(TestSetUp):
 
         data = []
 
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'validate_target_metadata'
                    '.get_target_metadata_key_value',
                    return_value=None) as mock_get_target_kv, \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'validate_target_metadata'
                       '.store_target_metadata_validation_status',
                       return_value=None) as mock_store_target_valid_status:
@@ -259,9 +259,9 @@ class CommandTests(TestSetUp):
 
     def test_rename_metadata_ledger_fields(self):
         """Test for Renaming XIA column names to match with XIS column names"""
-        with patch('openlxp_django_xia.management.utils.xia_internal'
+        with patch('django_openlxp_xia.management.utils.xia_internal'
                    '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xisCfg.first.return_value = xiaConfig
@@ -278,11 +278,11 @@ class CommandTests(TestSetUp):
     def test_get_records_to_load_into_xis_one_record(self):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
-        with patch('openlxp_django_xia.management.commands.'
+        with patch('django_openlxp_xia.management.commands.'
                    'load_target_metadata.post_data_to_xis', return_value=None
                    )as \
                 mock_post_data_to_xis, \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'load_target_metadata.MetadataLedger.objects') as \
                 meta_obj:
             meta_data = MetadataLedger(
@@ -308,11 +308,11 @@ class CommandTests(TestSetUp):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch(
-                'openlxp_django_xia.management.commands.load_target_metadata'
+                'django_openlxp_xia.management.commands.load_target_metadata'
                 '.post_data_to_xis', return_value=None)as \
                 mock_post_data_to_xis, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_target_metadata.MetadataLedger.objects') as meta_obj:
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
@@ -325,20 +325,20 @@ class CommandTests(TestSetUp):
         """Test for POSTing XIA metadata_ledger to XIS metadata_ledger
         when data is not present"""
         data = []
-        with patch('openlxp_django_xia.management.commands'
+        with patch('django_openlxp_xia.management.commands'
                    '.load_target_metadata.rename_metadata_ledger_fields',
                    return_value=self.xis_expected_data), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_target_metadata.MetadataLedger.objects') as \
                 meta_obj, \
                 patch('requests.post') as response_obj, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_target_metadata'
                     '.get_records_to_load_into_xis',
                     return_value=None) as mock_check_records_to_load:
@@ -363,22 +363,22 @@ class CommandTests(TestSetUp):
         data = [self.xia_data,
                 self.xia_data]
         with patch(
-                'openlxp_django_xia.management.commands.load_target_metadata'
+                'django_openlxp_xia.management.commands.load_target_metadata'
                 '.rename_metadata_ledger_fields',
                 return_value=self.xis_expected_data), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands'
+                    'django_openlxp_xia.management.commands'
                     '.load_target_metadata.MetadataLedger.objects') \
                 as meta_obj, \
                 patch('requests.post') as response_obj, \
-                patch('openlxp_django_xia.management.utils.xis_client'
+                patch('django_openlxp_xia.management.utils.xis_client'
                       '.XISConfiguration.objects') as xisCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_target_metadata'
                     '.get_records_to_load_into_xis',
                     return_value=None) as mock_check_records_to_load:
@@ -404,9 +404,9 @@ class CommandTests(TestSetUp):
 
     def test_rename_supplemental_metadata_fields(self):
         """Test for Renaming XIA column names to match with XIS column names"""
-        with patch('openlxp_django_xia.management.utils.xia_internal'
+        with patch('django_openlxp_xia.management.utils.xia_internal'
                    '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xisCfg.first.return_value = xiaConfig
@@ -429,12 +429,12 @@ class CommandTests(TestSetUp):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch(
-                'openlxp_django_xia.management.commands.'
+                'django_openlxp_xia.management.commands.'
                 'load_supplemental_metadata'
                 '.post_supplemental_metadata_to_xis', return_value=None)as \
                 mock_post_data_to_xis, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_supplemental_metadata'
                     '.SupplementalLedger.objects') as meta_obj:
             meta_data = SupplementalLedger(
@@ -457,12 +457,12 @@ class CommandTests(TestSetUp):
         """Test to Retrieve number of Metadata_Ledger records in XIA to load
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch(
-                'openlxp_django_xia.management.commands.'
+                'django_openlxp_xia.management.commands.'
                 'load_supplemental_metadata'
                 '.post_supplemental_metadata_to_xis', return_value=None)as \
                 mock_post_data_to_xis, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_supplemental_metadata.SupplementalLedger.objects') \
                 as meta_obj:
             meta_obj.return_value = meta_obj
@@ -477,20 +477,20 @@ class CommandTests(TestSetUp):
         when data is not present"""
         data = []
         with patch(
-                'openlxp_django_xia.management.commands.'
+                'django_openlxp_xia.management.commands.'
                 'load_supplemental_metadata'
                 '.rename_supplemental_metadata_fields',
                 return_value=self.xis_expected_data), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_supplemental_metadata'
                     '.SupplementalLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
-                patch('openlxp_django_xia.management.commands.'
+                patch('django_openlxp_xia.management.commands.'
                       'load_supplemental_metadata'
                       '.load_supplemental_metadata_to_xis',
                       return_value=None) \
@@ -516,23 +516,23 @@ class CommandTests(TestSetUp):
         data = [self.xia_supplemental_data,
                 self.xia_supplemental_data]
         with patch(
-                'openlxp_django_xia.management.commands.'
+                'django_openlxp_xia.management.commands.'
                 'load_supplemental_metadata'
                 '.rename_supplemental_metadata_fields',
                 return_value=self.xis_expected_data), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.get_publisher_detail'), \
-                patch('openlxp_django_xia.management.utils.xia_internal'
+                patch('django_openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_supplemental_metadata'
                     '.SupplementalLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
-                patch('openlxp_django_xia.management.utils.xis_client'
+                patch('django_openlxp_xia.management.utils.xis_client'
                       '.XISConfiguration.objects') as xisCfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.'
+                    'django_openlxp_xia.management.commands.'
                     'load_supplemental_metadata'
                     '.load_supplemental_metadata_to_xis',
                     return_value=None) as mock_check_records_to_load:
@@ -559,13 +559,13 @@ class CommandTests(TestSetUp):
 
     def test_send_log_email(self):
         """Test for function to send emails of log file to personas"""
-        with patch('openlxp_django_xia.management.commands.conformance_alerts'
+        with patch('django_openlxp_xia.management.commands.conformance_alerts'
                    '.ReceiverEmailConfiguration') as receive_email_cfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.conformance_alerts'
+                    'django_openlxp_xia.management.commands.conformance_alerts'
                     '.SenderEmailConfiguration') as sender_email_cfg, \
                 patch(
-                    'openlxp_django_xia.management.commands.conformance_alerts'
+                    'django_openlxp_xia.management.commands.conformance_alerts'
                     '.send_notifications', return_value=None
                 ) as mock_send_notification:
             receive_email = ReceiverEmailConfiguration(

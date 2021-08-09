@@ -5,20 +5,20 @@ from ddt import ddt
 from django.test import tag
 from django.utils import timezone
 
-from openlxp_django_xia.management.commands.load_target_metadata import (
+from django_openlxp_xia.management.commands.load_target_metadata import (
     post_data_to_xis, rename_metadata_ledger_fields)
-from openlxp_django_xia.management.commands.transform_source_metadata import (
-    get_target_metadata_for_transformation, store_transformed_source_metadata,
-    transform_source_using_key)
-from openlxp_django_xia.management.commands.validate_source_metadata import (
-    get_source_metadata_for_validation, get_source_validation_schema,
+from django_openlxp_xia.management.commands.transform_source_metadata import \
+    (store_transformed_source_metadata, transform_source_using_key)
+from django_openlxp_xia.management.commands.validate_source_metadata import (
+    get_source_metadata_for_validation,
     store_source_metadata_validation_status, validate_source_using_key)
-from openlxp_django_xia.management.commands.validate_target_metadata import (
+from django_openlxp_xia.management.commands.validate_target_metadata import (
     get_target_validation_schema, store_target_metadata_validation_status,
     validate_target_using_key)
-from openlxp_django_xia.management.utils.xss_client import read_json_data
-from openlxp_django_xia.models import (MetadataLedger, SupplementalLedger, XIAConfiguration,
-                         XISConfiguration)
+from django_openlxp_xia.management.utils.xss_client import read_json_data
+from django_openlxp_xia.models import (MetadataLedger, SupplementalLedger,
+                                       XIAConfiguration,
+                                       XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -31,15 +31,6 @@ class CommandIntegration(TestSetUp):
     # globally accessible data sets
 
     # Test cases for validate_source_metadata
-    def test_get_source_validation_schema(self):
-        """Test to retrieve source validation schema from XIA configuration """
-
-        xiaConfig = XIAConfiguration(
-            source_metadata_schema='AGENT_source_validate_schema.json')
-        xiaConfig.save()
-        result_dict = get_source_validation_schema()
-        expected_dict = read_json_data('AGENT_source_validate_schema.json')
-        self.assertEqual(expected_dict, result_dict)
 
     def test_get_source_metadata_for_validation(self):
         """Test retrieving  source metadata from MetadataLedger that
@@ -153,19 +144,6 @@ class CommandIntegration(TestSetUp):
             'record_lifecycle_status'))
 
     # Test cases for transform_source_metadata
-
-    def test_get_target_metadata_for_transformation(self):
-        """Test that get target mapping_dictionary from XIAConfiguration """
-        with patch('openlxp_django_xia.management.utils.xss_client'
-                   '.read_json_data', return_value=self.source_target_mapping):
-            xiaConfig = XIAConfiguration(
-                target_metadata_schema='AGENT_p2881_target_metadata_schema.json')
-            xiaConfig.save()
-            source_target_mapping = get_target_metadata_for_transformation()
-            expected_target_mapping_dict = read_json_data(
-                'AGENT_p2881_target_metadata_schema.json')
-            self.assertEqual(source_target_mapping,
-                             expected_target_mapping_dict)
 
     def test_transform_source_using_key(self):
         """Test to transform source metadata to target metadata schema
@@ -308,23 +286,14 @@ class CommandIntegration(TestSetUp):
                                       record_lifecycle_status='Active'
                                       ).exclude(
             source_metadata_transformation_date=None)
-        required_dict = {'Course.CourseProviderName', 'Course.CourseCode',
-                         'Course.CourseTitle', 'Course.CourseDescription',
-                         'Course.CourseShortDescription',
-                         'Course.CourseSubjectMatter',
-                         'CourseInstance.CourseCode',
-                         'CourseInstance.CourseTitle ',
-                         'CourseInstance.StartDate', 'CourseInstance.EndDate',
-                         'CourseInstance.DeliveryMode',
-                         'CourseInstance.Instructor',
-                         'General_Information.StartDate',
-                         'General_Information.EndDate'}
-        recommended_dict = {'CourseInstance.Thumbnail',
-                            'Technical_Information.Thumbnail'}
-        validate_target_using_key(test_data, required_dict, recommended_dict)
+
+        validate_target_using_key(
+            test_data, self.test_target_required_column_names,
+            self.recommended_column_name)
         result_query = MetadataLedger.objects.values(
             'target_metadata_validation_status', 'record_lifecycle_status'). \
             filter(target_metadata_key_hash=self.target_key_value_hash).first()
+
         result_query_invalid = MetadataLedger.objects.values(
             'target_metadata_validation_status', 'record_lifecycle_status'). \
             filter(target_metadata_key_hash=self.
