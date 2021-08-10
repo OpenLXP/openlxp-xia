@@ -32,4 +32,10 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
       run: |
+        echo "Cloning private repository"
+        git clone https://openlxp-host:${{ secrets.ACCESS_TOKEN }}@github.com/OpenLXP/openlxp-private.git
+        echo "Private repository cloned successfully"
+        echo "Copying .env file from openlxp-private to current working directory"
+        cp ./openlxp-private/openlxp-xia-env/.env .
+        echo "Copied .env file successfully"
         coverage run manage.py test --tag=unit && flake8 && coverage report && coverage report --fail-under=80
