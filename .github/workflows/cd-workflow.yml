@@ -39,5 +39,5 @@ jobs:
         cp ./openlxp-private/openlxp-xia-env/.env .
         echo "Copied .env file successfully"
         pwd
-        cd ~/openlxp-xia/app/
+        cd app/
         coverage run manage.py test --tag=unit && flake8 && coverage report && coverage report --fail-under=80
