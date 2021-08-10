@@ -5,13 +5,13 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from django_openlxp_xia.management.utils.xia_internal import (
+from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_target_metadata_key_value,
     replace_field_on_target_schema)
-from django_openlxp_xia.management.utils.xss_client import (
+from openlxp_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_source_validation_schema,
     get_target_metadata_for_transformation)
-from django_openlxp_xia.models import MetadataLedger, SupplementalLedger
+from openlxp_xia.models import MetadataLedger, SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
 

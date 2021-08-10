@@ -7,11 +7,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
 from django.utils import timezone
 
-from django_openlxp_xia.management.utils.xia_internal import \
-    get_publisher_detail
-from django_openlxp_xia.management.utils.xis_client import \
+from openlxp_xia.management.utils.xia_internal import get_publisher_detail
+from openlxp_xia.management.utils.xis_client import \
     posting_supplemental_metadata_to_xis
-from django_openlxp_xia.models import SupplementalLedger
+from openlxp_xia.models import SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
 

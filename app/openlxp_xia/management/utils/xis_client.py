@@ -2,7 +2,7 @@ import logging
 
 import requests
 
-from django_openlxp_xia.models import XISConfiguration
+from openlxp_xia.models import XISConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 

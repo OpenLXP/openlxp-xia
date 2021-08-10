@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase, tag
 
-from django_openlxp_xia.models import XIAConfiguration
+from openlxp_xia.models import XIAConfiguration
 
 
 @tag('integration')

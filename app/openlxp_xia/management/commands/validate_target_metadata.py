@@ -3,12 +3,12 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from django_openlxp_xia.management.utils.xia_internal import (
+from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_key_dict, get_target_metadata_key_value,
     required_recommended_logs)
-from django_openlxp_xia.management.utils.xss_client import (
+from openlxp_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_target_validation_schema)
-from django_openlxp_xia.models import MetadataLedger, SupplementalLedger
+from openlxp_xia.models import MetadataLedger, SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
 

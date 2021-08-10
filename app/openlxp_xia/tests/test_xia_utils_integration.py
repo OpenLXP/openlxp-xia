@@ -4,9 +4,9 @@ import logging
 from ddt import ddt
 from django.test import tag
 
-from django_openlxp_xia.management.commands.transform_source_metadata import \
+from openlxp_xia.management.commands.transform_source_metadata import \
     get_target_metadata_for_transformation
-from django_openlxp_xia.models import XIAConfiguration
+from openlxp_xia.models import XIAConfiguration
 
 from .test_setup import TestSetUp
 

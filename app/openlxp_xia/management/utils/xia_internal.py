@@ -3,7 +3,7 @@ import hashlib
 import logging
 from distutils.util import strtobool
 
-from django_openlxp_xia.models import XIAConfiguration
+from openlxp_xia.models import XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 

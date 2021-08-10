@@ -4,8 +4,8 @@ import os
 
 import boto3
 
-from django_openlxp_xia.management.utils.xia_internal import dict_flatten
-from django_openlxp_xia.models import XIAConfiguration
+from openlxp_xia.management.utils.xia_internal import dict_flatten
+from openlxp_xia.models import XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 

@@ -5,19 +5,19 @@ from ddt import ddt
 from django.test import tag
 from django.utils import timezone
 
-from django_openlxp_xia.management.commands.load_target_metadata import (
+from openlxp_xia.management.commands.load_target_metadata import (
     post_data_to_xis, rename_metadata_ledger_fields)
-from django_openlxp_xia.management.commands.transform_source_metadata import (
+from openlxp_xia.management.commands.transform_source_metadata import (
     store_transformed_source_metadata, transform_source_using_key)
-from django_openlxp_xia.management.commands.validate_source_metadata import (
+from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation,
     store_source_metadata_validation_status, validate_source_using_key)
-from django_openlxp_xia.management.commands.validate_target_metadata import (
+from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_validation_schema, store_target_metadata_validation_status,
     validate_target_using_key)
-from django_openlxp_xia.management.utils.xss_client import read_json_data
-from django_openlxp_xia.models import (MetadataLedger, SupplementalLedger,
-                                       XIAConfiguration, XISConfiguration)
+from openlxp_xia.management.utils.xss_client import read_json_data
+from openlxp_xia.models import (MetadataLedger, SupplementalLedger,
+                                XIAConfiguration, XISConfiguration)
 
 from .test_setup import TestSetUp
 

@@ -1,11 +1,10 @@
 from django.test import SimpleTestCase, tag
 from django.utils import timezone
 
-from django_openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
-                                       ReceiverEmailConfiguration,
-                                       SenderEmailConfiguration,
-                                       SupplementalLedger, XIAConfiguration,
-                                       XISConfiguration)
+from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
+                                ReceiverEmailConfiguration,
+                                SenderEmailConfiguration, SupplementalLedger,
+                                XIAConfiguration, XISConfiguration)
 
 
 @tag('unit')

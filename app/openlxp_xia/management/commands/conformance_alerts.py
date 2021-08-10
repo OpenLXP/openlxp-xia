@@ -2,9 +2,9 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from django_openlxp_xia.management.utils.notification import send_notifications
-from django_openlxp_xia.models import (ReceiverEmailConfiguration,
-                                       SenderEmailConfiguration)
+from openlxp_xia.management.utils.notification import send_notifications
+from openlxp_xia.models import (ReceiverEmailConfiguration,
+                                SenderEmailConfiguration)
 
 logger = logging.getLogger('dict_config_logger')
 

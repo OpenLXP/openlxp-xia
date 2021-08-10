@@ -5,7 +5,7 @@ from django.forms import ValidationError
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
 
-from django_openlxp_xia.management.utils.notification import email_verification
+from openlxp_xia.management.utils.notification import email_verification
 
 
 class XIAConfiguration(TimeStampedModel):
