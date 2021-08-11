@@ -96,21 +96,28 @@ def validate_target_using_key(target_data_dict, required_column_list,
             flattened_source_data = dict_flatten(target_data_dict[ind]
                                                  [table_column_name],
                                                  required_column_list)
-            #  looping through elements in the metadata
-            for item in flattened_source_data:
-                # validate for required values in data
-                if item in required_column_list:
-                    # update validation and record status for invalid data
-                    # Log out error for missing required values
+            # validate for required values in data
+            for item in required_column_list:
+                # update validation and record status for invalid data
+                # Log out error for missing required values
+                if item in flattened_source_data:
                     if not flattened_source_data[item]:
                         validation_result = 'N'
                         record_status_result = 'Inactive'
                         required_recommended_logs(ind, "Required", item)
-                # validate for recommended values in data
-                elif item in recommended_column_list:
-                    # Log out warning for missing recommended values
+                else:
+                    validation_result = 'N'
+                    record_status_result = 'Inactive'
+                    required_recommended_logs(ind, "Required", item)
+
+            # validate for recommended values in data
+            for item in recommended_column_list:
+                # Log out warning for missing recommended values
+                if item in flattened_source_data:
                     if not flattened_source_data[item]:
                         required_recommended_logs(ind, "Recommended", item)
+                else:
+                    required_recommended_logs(ind, "Recommended", item)
 
             # Key creation for target metadata
             key = \

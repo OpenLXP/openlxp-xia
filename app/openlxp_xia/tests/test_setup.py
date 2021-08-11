@@ -33,7 +33,7 @@ class TestSetUp(TestCase):
                 "CourseAudience": "test_data",
                 "DepartmentName": "",
                 "CourseObjective": "test_data",
-                "CourseDescription": "test description",
+                "CourseShortDescription": "test description",
                 "CourseProviderName": "AGENT",
                 "CourseSpecialNotes": "test_data",
                 "CoursePrerequisites": "None",
@@ -294,13 +294,9 @@ class TestSetUp(TestCase):
         }
 
         self.test_target_required_column_names = {
-            'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
-            'CourseInstance.CourseCode', 'CourseInstance.Instructor',
-            'Course.CourseProviderName', 'Course.CourseDescription',
-            'Course.CourseShortDescription', 'CourseInstance.StartDate',
-            'Course.CourseCode', 'CourseInstance.CourseTitle ',
-            'General_Information.StartDate', 'Course.CourseSubjectMatter',
-            'General_Information.EndDate', 'Course.CourseTitle'}
+            'Course.CourseCode',
+            'Course.CourseProviderName',
+            'Course.CourseShortDescription'}
         self.recommended_column_name = {'Technical_Information.Thumbnail',
                                         'CourseInstance.Thumbnail'}
 
@@ -327,10 +323,6 @@ class TestSetUp(TestCase):
             "supplemental_data1": "sample1",
             "supplemental_data2": "sample2"
         }
-
-        self.receive_email_list = ['receiver1@openlxp.com',
-                                   'receiver1@openlxp.com']
-        self.sender_email = "sender@openlxp.com"
 
         return super().setUp()
 

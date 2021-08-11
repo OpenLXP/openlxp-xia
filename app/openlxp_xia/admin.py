@@ -1,8 +1,6 @@
 from django.contrib import admin
 
-from .models import (MetadataFieldOverwrite, ReceiverEmailConfiguration,
-                     SenderEmailConfiguration, XIAConfiguration,
-                     XISConfiguration)
+from .models import MetadataFieldOverwrite, XIAConfiguration, XISConfiguration
 
 
 @admin.register(XIAConfiguration)
@@ -24,16 +22,6 @@ class XISConfigurationAdmin(admin.ModelAdmin):
                     'xis_supplemental_api_endpoint',)
     fields = ['xis_metadata_api_endpoint',
               'xis_supplemental_api_endpoint']
-
-
-@admin.register(ReceiverEmailConfiguration)
-class ReceiverEmailConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('email_address',)
-
-
-@admin.register(SenderEmailConfiguration)
-class SenderEmailConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('sender_email_address',)
 
 
 @admin.register(MetadataFieldOverwrite)

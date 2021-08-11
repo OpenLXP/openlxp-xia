@@ -2,9 +2,8 @@ from django.test import SimpleTestCase, tag
 from django.utils import timezone
 
 from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
-                                ReceiverEmailConfiguration,
-                                SenderEmailConfiguration, SupplementalLedger,
-                                XIAConfiguration, XISConfiguration)
+                                SupplementalLedger, XIAConfiguration,
+                                XISConfiguration)
 
 
 @tag('unit')
@@ -43,28 +42,6 @@ class ModelTests(SimpleTestCase):
                          xis_supplemental_api_endpoint)
         self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
                          xis_supplemental_api_endpoint)
-
-    def test_create_sender_email_config(self):
-        """Test that creating a new Sender Email Configuration entry is
-        successful with defaults """
-        sender_email_address = 'example@test.com'
-
-        sender_email_Config = SenderEmailConfiguration(
-            sender_email_address=sender_email_address)
-
-        self.assertEqual(sender_email_Config.sender_email_address,
-                         sender_email_address)
-
-    def test_create_receiver_email_config(self):
-        """Test that creating a new Receiver Email Configuration entry is
-        successful with defaults """
-        email_address = 'example@test.com'
-
-        receiver_email_Config = ReceiverEmailConfiguration(
-            email_address=email_address)
-
-        self.assertEqual(receiver_email_Config.email_address,
-                         email_address)
 
     def test_metadata_ledger(self):
         """Test for a new Metadata_Ledger entry is successful with defaults"""

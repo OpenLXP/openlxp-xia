@@ -5,7 +5,6 @@ from ddt import ddt
 from django.test import tag
 from django.utils import timezone
 
-from openlxp_xia.management.commands.conformance_alerts import send_log_email
 from openlxp_xia.management.commands.load_supplemental_metadata import (
     load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
     rename_supplemental_metadata_fields)
@@ -19,8 +18,7 @@ from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
-from openlxp_xia.models import (MetadataLedger, ReceiverEmailConfiguration,
-                                SenderEmailConfiguration, SupplementalLedger,
+from openlxp_xia.models import (MetadataLedger, SupplementalLedger,
                                 XIAConfiguration, XISConfiguration)
 
 from .test_setup import TestSetUp
@@ -549,26 +547,3 @@ class CommandTests(TestSetUp):
             post_supplemental_metadata_to_xis(data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
-
-    # Test cases for conformance_alerts
-
-    def test_send_log_email(self):
-        """Test for function to send emails of log file to personas"""
-        with patch('openlxp_xia.management.commands.conformance_alerts'
-                   '.ReceiverEmailConfiguration') as receive_email_cfg, \
-                patch(
-                    'openlxp_xia.management.commands.conformance_alerts'
-                    '.SenderEmailConfiguration') as sender_email_cfg, \
-                patch(
-                    'openlxp_xia.management.commands.conformance_alerts'
-                    '.send_notifications', return_value=None
-                ) as mock_send_notification:
-            receive_email = ReceiverEmailConfiguration(
-                email_address=self.receive_email_list)
-            receive_email_cfg.first.return_value = receive_email
-
-            send_email = SenderEmailConfiguration(
-                sender_email_address=self.sender_email)
-            sender_email_cfg.first.return_value = send_email
-            send_log_email()
-            self.assertEqual(mock_send_notification.call_count, 1)
