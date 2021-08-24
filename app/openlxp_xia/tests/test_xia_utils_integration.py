@@ -20,7 +20,7 @@ class CommandIntegration(TestSetUp):
     def test_get_target_metadata_for_transformation(self):
         """Test that get target mapping_dictionary from XIAConfiguration """
         xiaConfig = XIAConfiguration(
-            target_metadata_schema='AGENT_p2881_target_metadata_schema.json')
+            source_target_mapping='p2881_schema.json')
         xiaConfig.save()
         source_target_mapping = get_target_metadata_for_transformation()
         self.assertTrue(source_target_mapping)

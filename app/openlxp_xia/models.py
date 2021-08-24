@@ -8,22 +8,19 @@ from model_utils.models import TimeStampedModel
 
 class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
-    publisher = models.CharField(default='JKO', max_length=200,
+    publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
-    source_metadata_schema = models.CharField(
-        default='JKO_source_validate_schema.json', max_length=200,
-        help_text='Enter the JKO '
-                  'schema file')
-    source_target_mapping = models.CharField(
-        default='JKO_p2881_target_metadata_schema.json', max_length=200,
-        help_text='Enter the schema '
-                  'file to map '
-                  'target.')
-    target_metadata_schema = models.CharField(
-        default='p2881_target_validation_schema.json', max_length=200,
-        help_text='Enter the target '
-                  'schema file to '
-                  'validate from.')
+    source_metadata_schema = models.CharField(max_length=200,
+                                              help_text='Enter the JKO '
+                                                        'schema file')
+    source_target_mapping = models.CharField(max_length=200,
+                                             help_text='Enter the schema '
+                                                       'file to map '
+                                                       'target.')
+    target_metadata_schema = models.CharField(max_length=200,
+                                              help_text='Enter the target '
+                                                        'schema file to '
+                                                        'validate from.')
     source_file = models.FileField(help_text='Upload the source '
                                              'file')
 

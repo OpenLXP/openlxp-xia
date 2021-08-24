@@ -171,7 +171,10 @@ def flatten_list_object(list_obj, prefix, flatten_dict, required_column_list):
         # looping through items in required columns with matching prefix
         for item_to_check in required_prefix_list:
             #  flag if value not found
-            if not flatten_dict[item_to_check]:
+            if item_to_check in flatten_dict:
+                if not flatten_dict[item_to_check]:
+                    passed = False
+            else:
                 passed = False
 
         # if all required values are skip other object in list
