@@ -24,7 +24,6 @@ def get_source_metadata_for_transformation():
         "Retrieving source metadata from MetadataLedger to be transformed")
     source_data_dict = MetadataLedger.objects.values(
         'source_metadata').filter(
-        source_metadata_validation_status='Y',
         record_lifecycle_status='Active',
         source_metadata_transformation_date=None).exclude(
         source_metadata_validation_date=None)
@@ -133,14 +132,12 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         "source_metadata_extraction_date", flat=True).get(
         source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active',
-        source_metadata_validation_status='Y',
         source_metadata_transformation_date=None
     )
 
     data_for_transformation = MetadataLedger.objects.filter(
         source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active',
-        source_metadata_validation_status='Y',
         source_metadata_transformation_date=None
     )
 

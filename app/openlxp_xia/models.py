@@ -1,9 +1,15 @@
+import json
+import logging
+import os
 import uuid
 
+import boto3
 from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
 from model_utils.models import TimeStampedModel
+
+logger = logging.getLogger('dict_config_logger')
 
 
 class XIAConfiguration(TimeStampedModel):
@@ -33,10 +39,45 @@ class XIAConfiguration(TimeStampedModel):
         return f'{self.id}'
 
     def save(self, *args, **kwargs):
+        # Deleting the corresponding existing value to overwrite
+        MetadataFieldOverwrite.objects.all().delete()
+        # get required columns list from schema files
+        s3 = boto3.resource('s3')
+        bucket_name = os.environ.get('BUCKET_NAME')
+        # Read json file and store as a dictionary for processing
+        mapping_path = s3.Object(bucket_name, self.source_target_mapping)
+        mapping_content = mapping_path.get()['Body'].read().decode('utf-8')
+        mapping = json.loads(mapping_content)
+
+        # Read json file and store as a dictionary for processing
+        target_path = s3.Object(bucket_name, self.target_metadata_schema)
+        target_content = target_path.get()['Body'].read().decode('utf-8')
+        target = json.loads(target_content)
+
+        # saving required column values to be overwritten
+        for section in target:
+            for key, val in target[section].items():
+                if val == 'Required':
+                    if section in mapping and key in mapping[section]:
+                        metadata_field_overwrite = MetadataFieldOverwrite()
+                        metadata_field_overwrite.field_name = \
+                            mapping[section][key]
+                        metadata_field_overwrite.save()
+                    else:
+                        logger.error("Mapping for required value " +
+                                     section + "." + key +
+                                     " not found in schema mapping")
+
         if not self.pk and XIAConfiguration.objects.exists():
             raise ValidationError('There can be only one XIAConfiguration '
                                   'instance')
         return super(XIAConfiguration, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Deleting the corresponding existing value to overwrite
+        metadata_fields = MetadataFieldOverwrite.objects.all()
+        metadata_fields.delete()
+        return super(XIAConfiguration, self).delete(*args, **kwargs)
 
 
 class XISConfiguration(TimeStampedModel):
@@ -146,9 +187,10 @@ class MetadataFieldOverwrite(TimeStampedModel):
     )
 
     field_name = models.CharField(max_length=200)
-    field_type = models.CharField(max_length=200, choices=COLOR_CHOICES)
-    field_value = models.CharField(max_length=200)
-    overwrite = models.BooleanField()
+    field_type = models.CharField(max_length=200, choices=COLOR_CHOICES,
+                                  null=True)
+    field_value = models.CharField(max_length=200, null=True)
+    overwrite = models.BooleanField(default=False)
 
     def __str__(self):
         """String for representing the Model object."""

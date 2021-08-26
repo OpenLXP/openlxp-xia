@@ -15,6 +15,11 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
               ('source_target_mapping',
                'target_metadata_schema')]
 
+    def delete_queryset(self, request, queryset):
+        metadata_fields = MetadataFieldOverwrite.objects.all()
+        metadata_fields.delete()
+        super().delete_queryset(request, queryset)
+
 
 @admin.register(XISConfiguration)
 class XISConfigurationAdmin(admin.ModelAdmin):
