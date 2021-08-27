@@ -3,6 +3,20 @@ from django.contrib import admin
 from .models import MetadataFieldOverwrite, XIAConfiguration, XISConfiguration
 
 
+def marked_default(MetadataFieldOverwriteAdmin, request, queryset):
+    queryset.update(field_type='char')
+    queryset.update(field_value='Unavailable')
+
+
+def unmarked_default(MetadataFieldOverwriteAdmin, request, queryset):
+    queryset.update(field_type=None)
+    queryset.update(field_value=None)
+
+
+marked_default.short_description = "Mark default values for fields"
+unmarked_default.short_description = "Unmarked default values for fields"
+
+
 @admin.register(XIAConfiguration)
 class XIAConfigurationAdmin(admin.ModelAdmin):
     list_display = (
@@ -39,3 +53,4 @@ class MetadataFieldOverwriteAdmin(admin.ModelAdmin):
               'field_type',
               'field_value',
               'overwrite']
+    actions = [marked_default, unmarked_default]

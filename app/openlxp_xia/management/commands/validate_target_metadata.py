@@ -99,41 +99,16 @@ def validate_target_using_key(target_data_dict, required_column_list,
                                              required_column_list)
         # validate for required values in data
         for item in required_column_list:
-            target_metadata = target_data_dict[ind]['target_metadata']
-            split_items = item.split('.')
-            len_split_items = len(split_items)
             # update validation and record status for invalid data
             # Log out error for missing required values
             if item in flattened_source_data:
                 if not flattened_source_data[item]:
-                    # Added default value for missing columns
-                    for index1 in range(len_split_items - 1):
-                        if split_items[index1] in target_metadata:
-                            target_metadata = target_metadata[
-                                split_items[index1]]
-                        else:
-                            target_metadata[split_items[index1]] = {}
-                            target_metadata = target_metadata[
-                                split_items[index1]]
-                    target_metadata[
-                        split_items[len_split_items - 1]] = "Unavailable"
-                    # commented out code for validation
                     validation_result = 'N'
-                    # record_status_result = 'Inactive'
+                    record_status_result = 'Inactive'
                     required_recommended_logs(ind, "Required", item)
             else:
-                # Added default value for missing columns
-                for index1 in range(len_split_items-1):
-                    if split_items[index1] in target_metadata:
-                        target_metadata = target_metadata[split_items[index1]]
-                    else:
-                        target_metadata[split_items[index1]] = {}
-                        target_metadata = target_metadata[split_items[index1]]
-                target_metadata[
-                    split_items[len_split_items - 1]] = "Unavailable"
-                # Added default value for missing columns
                 validation_result = 'N'
-                # record_status_result = 'Inactive'
+                record_status_result = 'Inactive'
                 required_recommended_logs(ind, "Required", item)
 
         # validate for recommended values in data

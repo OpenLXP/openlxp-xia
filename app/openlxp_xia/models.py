@@ -38,7 +38,7 @@ class XIAConfiguration(TimeStampedModel):
         """String for representing the Model object."""
         return f'{self.id}'
 
-    def save(self, *args, **kwargs):
+    def field_overwrite(self):
         # Deleting the corresponding existing value to overwrite
         MetadataFieldOverwrite.objects.all().delete()
         # get required columns list from schema files
@@ -68,6 +68,9 @@ class XIAConfiguration(TimeStampedModel):
                                      section + "." + key +
                                      " not found in schema mapping")
 
+    def save(self, *args, **kwargs):
+        # Retrieve list of field required to be overwritten
+        self.field_overwrite()
         if not self.pk and XIAConfiguration.objects.exists():
             raise ValidationError('There can be only one XIAConfiguration '
                                   'instance')

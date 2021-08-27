@@ -203,8 +203,7 @@ class CommandTests(TestSetUp):
             mock_field.all.return_value = config
             mock_overwrite_fun.return_value = self.metadata_df
 
-            return_val = get_metadata_fields_to_overwrite(self.metadata_df)
-            print(return_val)
+            get_metadata_fields_to_overwrite(self.metadata_df)
             self.assertEqual(mock_overwrite_fun.call_count, 2)
 
     def test_overwrite_append_metadata(self):

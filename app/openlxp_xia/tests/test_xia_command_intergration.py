@@ -320,12 +320,14 @@ class CommandIntegration(TestSetUp):
 
     def test_get_target_validation_schema(self):
         """Test to retrieve source validation schema from XIA configuration """
-        xiaConfig = XIAConfiguration(
-            target_metadata_schema='p2881_target_validation_schema.json')
-        xiaConfig.save()
-        result_dict = get_target_validation_schema()
-        expected_dict = read_json_data('p2881_target_validation_schema.json')
-        self.assertEqual(expected_dict, result_dict)
+        with patch('openlxp_xia.models.XIAConfiguration.field_overwrite'):
+            xiaConfig = XIAConfiguration(
+                target_metadata_schema='p2881_target_validation_schema.json')
+            xiaConfig.save()
+            result_dict = get_target_validation_schema()
+            expected_dict = \
+                read_json_data('p2881_target_validation_schema.json')
+            self.assertEqual(expected_dict, result_dict)
 
     def test_validate_target_using_key(self):
         """Test for Validating target data for required columns """
@@ -456,102 +458,104 @@ class CommandIntegration(TestSetUp):
 
     def test_rename_metadata_ledger_fields(self):
         """Test for Renaming XIA column names to match with XIS column names"""
-        xiaConfig = XIAConfiguration(publisher='AGENT')
-        xiaConfig.save()
+        with patch('openlxp_xia.models.XIAConfiguration.field_overwrite'):
+            xiaConfig = XIAConfiguration(publisher='AGENT')
+            xiaConfig.save()
 
-        return_data = rename_metadata_ledger_fields(self.xia_data)
-        self.assertEquals(self.xis_expected_data['metadata_hash'],
-                          return_data['metadata_hash'])
-        self.assertEquals(self.xis_expected_data['metadata_key'],
-                          return_data['metadata_key'])
-        self.assertEquals(self.xis_expected_data['metadata_key_hash'],
-                          return_data['metadata_key_hash'])
-        self.assertEquals(self.xis_expected_data['provider_name'],
-                          return_data['provider_name'])
+            return_data = rename_metadata_ledger_fields(self.xia_data)
+            self.assertEquals(self.xis_expected_data['metadata_hash'],
+                              return_data['metadata_hash'])
+            self.assertEquals(self.xis_expected_data['metadata_key'],
+                              return_data['metadata_key'])
+            self.assertEquals(self.xis_expected_data['metadata_key_hash'],
+                              return_data['metadata_key_hash'])
+            self.assertEquals(self.xis_expected_data['provider_name'],
+                              return_data['provider_name'])
 
     def test_post_data_to_xis_response_201(self):
         """POSTing XIA metadata_ledger to XIS metadata_ledger and receive
         response status code 201"""
+        with patch('openlxp_xia.models.XIAConfiguration.field_overwrite'):
+            metadata_ledger = MetadataLedger(
+                record_lifecycle_status='Active',
+                source_metadata=self.source_metadata,
+                target_metadata=self.target_metadata,
+                target_metadata_hash=self.target_hash_value,
+                target_metadata_key_hash=self.target_key_value_hash,
+                target_metadata_key=self.target_key_value,
+                source_metadata_transformation_date=timezone.now(),
+                target_metadata_validation_status='Y',
+                source_metadata_validation_status='Y',
+                target_metadata_transmission_status='Ready')
+            metadata_ledger.save()
+            input_data = MetadataLedger.objects.filter(
+                record_lifecycle_status='Active',
+                target_metadata_validation_status='Y',
+                target_metadata_transmission_status='Ready').values(
+                'metadata_record_uuid',
+                'target_metadata',
+                'target_metadata_hash',
+                'target_metadata_key',
+                'target_metadata_key_hash')
+            xiaConfig = XIAConfiguration(publisher='AGENT')
+            xiaConfig.save()
+            xisConfig = XISConfiguration(
+                xis_metadata_api_endpoint=self.xis_api_endpoint_url)
+            xisConfig.save()
+            with patch('requests.post') as response_obj:
+                response_obj.return_value = response_obj
+                response_obj.status_code = 201
 
-        metadata_ledger = MetadataLedger(
-            record_lifecycle_status='Active',
-            source_metadata=self.source_metadata,
-            target_metadata=self.target_metadata,
-            target_metadata_hash=self.target_hash_value,
-            target_metadata_key_hash=self.target_key_value_hash,
-            target_metadata_key=self.target_key_value,
-            source_metadata_transformation_date=timezone.now(),
-            target_metadata_validation_status='Y',
-            source_metadata_validation_status='Y',
-            target_metadata_transmission_status='Ready')
-        metadata_ledger.save()
-        input_data = MetadataLedger.objects.filter(
-            record_lifecycle_status='Active',
-            target_metadata_validation_status='Y',
-            target_metadata_transmission_status='Ready').values(
-            'metadata_record_uuid',
-            'target_metadata',
-            'target_metadata_hash',
-            'target_metadata_key',
-            'target_metadata_key_hash')
-        xiaConfig = XIAConfiguration(publisher='AGENT')
-        xiaConfig.save()
-        xisConfig = XISConfiguration(
-            xis_metadata_api_endpoint=self.xis_api_endpoint_url)
-        xisConfig.save()
-        with patch('requests.post') as response_obj:
-            response_obj.return_value = response_obj
-            response_obj.status_code = 201
+                post_data_to_xis(input_data)
+                result_query = MetadataLedger.objects.values(
+                    'target_metadata_transmission_status_code',
+                    'target_metadata_transmission_status').filter(
+                    target_metadata_key=self.target_key_value).first()
 
-            post_data_to_xis(input_data)
-            result_query = MetadataLedger.objects.values(
-                'target_metadata_transmission_status_code',
-                'target_metadata_transmission_status').filter(
-                target_metadata_key=self.target_key_value).first()
-
-            self.assertEqual(201, result_query.get(
-                'target_metadata_transmission_status_code'))
-            self.assertEqual('Successful', result_query.get(
-                'target_metadata_transmission_status'))
+                self.assertEqual(201, result_query.get(
+                    'target_metadata_transmission_status_code'))
+                self.assertEqual('Successful', result_query.get(
+                    'target_metadata_transmission_status'))
 
     def test_post_data_to_xis_responses_other_than_201(self):
         """POSTing XIA metadata_ledger to XIS metadata_ledger and receive
         response status code 201"""
-        metadata_ledger = MetadataLedger(
-            record_lifecycle_status='Active',
-            source_metadata=self.source_metadata,
-            target_metadata=self.target_metadata,
-            target_metadata_hash=self.target_hash_value,
-            target_metadata_key_hash=self.target_key_value_hash,
-            target_metadata_key=self.target_key_value,
-            source_metadata_transformation_date=timezone.now(),
-            target_metadata_validation_status='Y',
-            source_metadata_validation_status='Y',
-            target_metadata_transmission_status='Ready')
-        metadata_ledger.save()
-        input_data = MetadataLedger.objects.filter(
-            record_lifecycle_status='Active',
-            target_metadata_validation_status='Y',
-            target_metadata_transmission_status='Ready').values(
-            'metadata_record_uuid',
-            'target_metadata',
-            'target_metadata_hash',
-            'target_metadata_key',
-            'target_metadata_key_hash')
-        xiaConfig = XIAConfiguration(publisher='AGENT')
-        xiaConfig.save()
-        xisConfig = XISConfiguration(
-            xis_metadata_api_endpoint=self.xis_api_endpoint_url)
-        xisConfig.save()
-        with patch('requests.post') as response_obj:
-            response_obj.return_value = response_obj
-            response_obj.status_code = 400
-            post_data_to_xis(input_data)
-            result_query = MetadataLedger.objects.values(
-                'target_metadata_transmission_status_code',
-                'target_metadata_transmission_status').filter(
-                target_metadata_key=self.target_key_value).first()
-            self.assertEqual(400, result_query.get(
-                'target_metadata_transmission_status_code'))
-            self.assertEqual('Failed', result_query.get(
-                'target_metadata_transmission_status'))
+        with patch('openlxp_xia.models.XIAConfiguration.field_overwrite'):
+            metadata_ledger = MetadataLedger(
+                record_lifecycle_status='Active',
+                source_metadata=self.source_metadata,
+                target_metadata=self.target_metadata,
+                target_metadata_hash=self.target_hash_value,
+                target_metadata_key_hash=self.target_key_value_hash,
+                target_metadata_key=self.target_key_value,
+                source_metadata_transformation_date=timezone.now(),
+                target_metadata_validation_status='Y',
+                source_metadata_validation_status='Y',
+                target_metadata_transmission_status='Ready')
+            metadata_ledger.save()
+            input_data = MetadataLedger.objects.filter(
+                record_lifecycle_status='Active',
+                target_metadata_validation_status='Y',
+                target_metadata_transmission_status='Ready').values(
+                'metadata_record_uuid',
+                'target_metadata',
+                'target_metadata_hash',
+                'target_metadata_key',
+                'target_metadata_key_hash')
+            xiaConfig = XIAConfiguration(publisher='AGENT')
+            xiaConfig.save()
+            xisConfig = XISConfiguration(
+                xis_metadata_api_endpoint=self.xis_api_endpoint_url)
+            xisConfig.save()
+            with patch('requests.post') as response_obj:
+                response_obj.return_value = response_obj
+                response_obj.status_code = 400
+                post_data_to_xis(input_data)
+                result_query = MetadataLedger.objects.values(
+                    'target_metadata_transmission_status_code',
+                    'target_metadata_transmission_status').filter(
+                    target_metadata_key=self.target_key_value).first()
+                self.assertEqual(400, result_query.get(
+                    'target_metadata_transmission_status_code'))
+                self.assertEqual('Failed', result_query.get(
+                    'target_metadata_transmission_status'))
