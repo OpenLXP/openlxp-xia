@@ -1,0 +1,43 @@
+name: Docker CD
+
+on:
+  push:
+    branches: 
+      - main
+      - gh-actions
+  pull_request:
+    branches: 
+      - main
+jobs:
+  code-test:
+# Kicks off the workflow and prepares Github to run coverage test using a ubuntu-latest container.
+    name: Code Test
+    runs-on: ubuntu-latest
+    env:
+      OS: ubuntu-latest
+      PYTHON: '3.9'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+# Install dependencies required for tests
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./requirements.txt
+# Start running test scripts and generate the coverage report
+    - name: Generate Coverage Report
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      run: |
+        echo "Cloning private repository"
+        git clone https://openlxp-host:${{ secrets.ACCESS_TOKEN }}@github.com/OpenLXP/openlxp-private.git
+        echo "Private repository cloned successfully"
+        echo "Copying .env file from openlxp-private to current working directory"
+        cp ./openlxp-private/openlxp-xia-env/.env .
+        echo "Copied .env file successfully"
+        pwd
+        cd app/
+        coverage run manage.py test --tag=unit && flake8 && coverage report && coverage report --fail-under=80
