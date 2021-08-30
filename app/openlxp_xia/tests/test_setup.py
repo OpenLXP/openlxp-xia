@@ -1,5 +1,6 @@
 from uuid import UUID
 
+import pandas as pd
 from django.test import TestCase
 
 
@@ -33,7 +34,7 @@ class TestSetUp(TestCase):
                 "CourseAudience": "test_data",
                 "DepartmentName": "",
                 "CourseObjective": "test_data",
-                "CourseDescription": "test description",
+                "CourseShortDescription": "test description",
                 "CourseProviderName": "AGENT",
                 "CourseSpecialNotes": "test_data",
                 "CoursePrerequisites": "None",
@@ -53,6 +54,51 @@ class TestSetUp(TestCase):
         self.target_key_value = "TestData 123_AGENT"
         self.target_key_value_hash = "d2a7f8cc5d5484a4dde099c6a21a903a"
         self.target_hash_value = "eaf3e57b7f21b4d813f1258fb4ebf89d"
+
+        self.source_metadata_overwrite = {
+            "Test": "0",
+            "Test_id": "2146",
+            "Test_url": "https://example.test.com/",
+            "End_date": "9999-12-31T00:00:00-05:00",
+            "test_name": "test name",
+            "Start_date": "2017-03-28T00:00:00-04:00",
+            "KEY": "TestData 234",
+            "SOURCESYSTEM": "AGENT",
+            "test_description": "test description",
+            "supplemental_data": "sample1"
+        }
+        self.key_value_overwrite = "TestData 234_AGENT"
+        self.key_value_hash_overwrite = "5a9a682afe965fb2aa1f9f50e5148ebd"
+        self.hash_value_overwrite = "81b86d6ac3b4d8561bd26f11d8feea9a"
+
+        self.target_metadata_overwrite = {
+            "Course": {
+                "CourseCode": "TestData 234",
+                "CourseTitle": "Acquisition Law",
+                "CourseAudience": "test_data",
+                "DepartmentName": "",
+                "CourseObjective": "test_data",
+                "CourseShortDescription": "test description",
+                "CourseProviderName": "AGENT",
+                "CourseSpecialNotes": "test_data",
+                "CoursePrerequisites": "None",
+                "EstimatedCompletionTime": "4.5 days",
+                "CourseSectionDeliveryMode": "Resident",
+                "CourseAdditionalInformation": "None"
+            },
+            "CourseInstance": {
+                "CourseURL": "https://agent.tes.com/ui/lms-learning-details"
+            },
+            "General_Information": {
+                "EndDate": "end_date",
+                "StartDate": "start_date"
+            }
+        }
+
+        self.target_overwrite_key_value = "TestData 234_AGENT"
+        self.target_overwrite_key_value_hash = \
+            "d2a7f8cc5d5484a4dde099c6a21a903a"
+        self.target_overwrite_hash_value = "eaf3e57b7f21b4d813f1258fb4ebf89d"
 
         self.xia_data = {
             'metadata_record_uuid': UUID(
@@ -294,13 +340,9 @@ class TestSetUp(TestCase):
         }
 
         self.test_target_required_column_names = {
-            'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
-            'CourseInstance.CourseCode', 'CourseInstance.Instructor',
-            'Course.CourseProviderName', 'Course.CourseDescription',
-            'Course.CourseShortDescription', 'CourseInstance.StartDate',
-            'Course.CourseCode', 'CourseInstance.CourseTitle ',
-            'General_Information.StartDate', 'Course.CourseSubjectMatter',
-            'General_Information.EndDate', 'Course.CourseTitle'}
+            'Course.CourseCode',
+            'Course.CourseProviderName',
+            'Course.CourseShortDescription'}
         self.recommended_column_name = {'Technical_Information.Thumbnail',
                                         'CourseInstance.Thumbnail'}
 
@@ -328,9 +370,8 @@ class TestSetUp(TestCase):
             "supplemental_data2": "sample2"
         }
 
-        self.receive_email_list = ['receiver1@openlxp.com',
-                                   'receiver1@openlxp.com']
-        self.sender_email = "sender@openlxp.com"
+        self.metadata_df = pd.DataFrame.from_dict(
+            {0: {1: self.source_metadata}}, orient='index')
 
         return super().setUp()
 

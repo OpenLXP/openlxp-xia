@@ -4,8 +4,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, get_key_dict, get_target_metadata_key_value,
-    required_recommended_logs)
+    dict_flatten, required_recommended_logs)
 from openlxp_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_target_validation_schema)
 from openlxp_xia.models import MetadataLedger, SupplementalLedger
@@ -19,6 +18,7 @@ def get_target_metadata_for_validation():
     logger.info(
         "Accessing target metadata from MetadataLedger to be validated")
     target_data_dict = MetadataLedger.objects.values(
+        'target_metadata_key_hash',
         'target_metadata').filter(target_metadata_validation_status='',
                                   record_lifecycle_status='Active',
                                   target_metadata_transmission_date=None
@@ -55,12 +55,14 @@ def update_previous_instance_in_metadata(key_value_hash):
 
 def store_target_metadata_validation_status(target_data_dict, key_value_hash,
                                             validation_result,
-                                            record_status_result):
+                                            record_status_result,
+                                            target_metadata):
     """Storing validation result in MetadataLedger"""
-    if validation_result == 'Y':
+    if record_status_result == 'Active':
         update_previous_instance_in_metadata(key_value_hash)
         target_data_dict.filter(
             target_metadata_key_hash=key_value_hash).update(
+            target_metadata=target_metadata,
             target_metadata_validation_status=validation_result,
             target_metadata_validation_date=timezone.now(),
             record_lifecycle_status=record_status_result)
@@ -68,6 +70,7 @@ def store_target_metadata_validation_status(target_data_dict, key_value_hash,
     else:
         target_data_dict.filter(
             target_metadata_key_hash=key_value_hash).update(
+            target_metadata=target_metadata,
             target_metadata_validation_status=validation_result,
             target_metadata_validation_date=timezone.now(),
             record_lifecycle_status=record_status_result,
@@ -87,41 +90,45 @@ def validate_target_using_key(target_data_dict, required_column_list,
     len_target_metadata = len(target_data_dict)
     for ind in range(len_target_metadata):
         # Updating default validation for all records
-        key = get_key_dict(None, None)
         validation_result = 'Y'
         record_status_result = 'Active'
-        # looping in source metadata
-        for table_column_name in target_data_dict[ind]:
-            # flattened source data created for reference
-            flattened_source_data = dict_flatten(target_data_dict[ind]
-                                                 [table_column_name],
-                                                 required_column_list)
-            #  looping through elements in the metadata
-            for item in flattened_source_data:
-                # validate for required values in data
-                if item in required_column_list:
-                    # update validation and record status for invalid data
-                    # Log out error for missing required values
-                    if not flattened_source_data[item]:
-                        validation_result = 'N'
-                        record_status_result = 'Inactive'
-                        required_recommended_logs(ind, "Required", item)
-                # validate for recommended values in data
-                elif item in recommended_column_list:
-                    # Log out warning for missing recommended values
-                    if not flattened_source_data[item]:
-                        required_recommended_logs(ind, "Recommended", item)
 
-            # Key creation for target metadata
-            key = \
-                get_target_metadata_key_value(target_data_dict[ind]
-                                              [table_column_name])
+        # flattened source data created for reference
+        flattened_source_data = dict_flatten(target_data_dict[ind]
+                                             ['target_metadata'],
+                                             required_column_list)
+        # validate for required values in data
+        for item in required_column_list:
+            # update validation and record status for invalid data
+            # Log out error for missing required values
+            if item in flattened_source_data:
+                if not flattened_source_data[item]:
+                    validation_result = 'N'
+                    record_status_result = 'Inactive'
+                    required_recommended_logs(ind, "Required", item)
+            else:
+                validation_result = 'N'
+                record_status_result = 'Inactive'
+                required_recommended_logs(ind, "Required", item)
 
+        # validate for recommended values in data
+        for item in recommended_column_list:
+            # Log out warning for missing recommended values
+            if item in flattened_source_data:
+                if not flattened_source_data[item]:
+                    required_recommended_logs(ind, "Recommended", item)
+            else:
+                required_recommended_logs(ind, "Recommended", item)
+
+        # assigning key hash value for source metadata
+        key_value_hash = target_data_dict[ind]['target_metadata_key_hash']
         # Calling function to update validation status
         store_target_metadata_validation_status(target_data_dict,
-                                                key['key_value_hash'],
+                                                key_value_hash,
                                                 validation_result,
-                                                record_status_result)
+                                                record_status_result,
+                                                target_data_dict[ind]
+                                                ['target_metadata'])
 
 
 class Command(BaseCommand):

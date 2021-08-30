@@ -5,7 +5,6 @@ from ddt import ddt
 from django.test import tag
 from django.utils import timezone
 
-from openlxp_xia.management.commands.conformance_alerts import send_log_email
 from openlxp_xia.management.commands.load_supplemental_metadata import (
     load_supplemental_metadata_to_xis, post_supplemental_metadata_to_xis,
     rename_supplemental_metadata_fields)
@@ -14,14 +13,16 @@ from openlxp_xia.management.commands.load_target_metadata import (
     rename_metadata_ledger_fields)
 from openlxp_xia.management.commands.transform_source_metadata import (
     create_supplemental_metadata, create_target_metadata_dict,
-    get_source_metadata_for_transformation, transform_source_using_key)
+    get_metadata_fields_to_overwrite, get_source_metadata_for_transformation,
+    overwrite_append_metadata, overwrite_metadata_field,
+    transform_source_using_key)
 from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, validate_target_using_key)
-from openlxp_xia.models import (MetadataLedger, ReceiverEmailConfiguration,
-                                SenderEmailConfiguration, SupplementalLedger,
-                                XIAConfiguration, XISConfiguration)
+from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
+                                SupplementalLedger, XIAConfiguration,
+                                XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -106,7 +107,6 @@ class CommandTests(TestSetUp):
             create_supplemental_metadata(self.test_metadata_column_list,
                                          self.
                                          source_metadata_with_supplemental)
-        print(supplemental_data)
         self.assertEqual(supplemental_data, self.supplemental_data)
 
     def test_create_target_metadata_dict(self):
@@ -176,6 +176,44 @@ class CommandTests(TestSetUp):
             self.assertEqual(
                 mock_store_transformed_source.call_count, 2)
 
+    def test_overwrite_metadata_field(self):
+        """Test to overwrite metadata with admin entered values and
+        return metadata in dictionary format """
+
+        with patch('openlxp_xia.management.commands.transform_source_metadata'
+                   '.get_metadata_fields_to_overwrite') as mock_get_overwrite:
+            mock_get_overwrite.return_value = self.metadata_df
+
+            return_val = overwrite_metadata_field(self.metadata_df)
+            self.assertIsInstance(return_val, dict)
+
+    def test_get_metadata_fields_to_overwrite(self):
+        """Test for looping through fields to be overwrite or appended"""
+        with patch('openlxp_xia.management.commands.'
+                   'transform_source_metadata.MetadataFieldOverwrite.'
+                   'objects') as mock_field, \
+                patch('openlxp_xia.management.commands.'
+                      'transform_source_metadata.'
+                      'overwrite_append_metadata') as mock_overwrite_fun:
+            config = \
+                [MetadataFieldOverwrite(field_name='column1', overwrite=True,
+                                        field_value='value1'),
+                 MetadataFieldOverwrite(field_name='column2', overwrite=False,
+                                        field_value='value2')]
+            mock_field.all.return_value = config
+            mock_overwrite_fun.return_value = self.metadata_df
+
+            get_metadata_fields_to_overwrite(self.metadata_df)
+            self.assertEqual(mock_overwrite_fun.call_count, 2)
+
+    def test_overwrite_append_metadata(self):
+        """test Overwrite & append metadata fields based on overwrite flag """
+        return_val = \
+            overwrite_append_metadata(self.metadata_df, 'column1', 'value1',
+                                      True)
+
+        self.assertEqual(return_val['column1'].all(), 'value1')
+
     # Test cases for validate_target_metadata
 
     def test_get_target_metadata_for_validation(self):
@@ -197,7 +235,10 @@ class CommandTests(TestSetUp):
     def test_validate_target_using_key_more_than_one(self):
         """Test to Validating target data against required & recommended
         column names for more than one row"""
-        data = [{1: self.target_metadata}, {2: self.target_metadata}]
+        data = [{'target_metadata_key_hash': 123,
+                 'target_metadata': self.target_metadata},
+                {'target_metadata_key_hash': 123,
+                 'target_metadata': self.target_metadata}]
         test_required_column_names = {
             'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
             'CourseInstance.CourseCode', 'CourseInstance.Instructor',
@@ -205,21 +246,14 @@ class CommandTests(TestSetUp):
             'Course.CourseShortDescription', 'CourseInstance.StartDate',
             'Course.CourseCode', 'CourseInstance.CourseTitle ',
             'General_Information.StartDate', 'Course.CourseSubjectMatter',
-            'General_Information.EndDate', 'Course.CourseTitle'}
+            'General_Information.EndDate', 'Course.CourseTitle',
+            'Technical.CourseTitle'}
         recommended_column_name = {'Technical_Information.Thumbnail',
                                    'CourseInstance.Thumbnail'}
         with patch('openlxp_xia.management.commands.'
-                   'validate_target_metadata.get_target_metadata_key_value',
-                   return_value=None) as mock_get_target_kv, \
-                patch('openlxp_xia.management.commands.'
-                      'validate_target_metadata'
-                      '.store_target_metadata_validation_status',
-                      return_value=None) as mock_store_target_valid_status:
-            mock_get_target_kv.return_value = mock_get_target_kv
-            mock_get_target_kv.exclude.return_value = mock_get_target_kv
-            mock_get_target_kv.filter.side_effect = [
-                mock_get_target_kv, mock_get_target_kv]
-
+                   'validate_target_metadata'
+                   '.store_target_metadata_validation_status',
+                   return_value=None) as mock_store_target_valid_status:
             validate_target_using_key(data, test_required_column_names,
                                       recommended_column_name)
             self.assertEqual(
@@ -233,17 +267,8 @@ class CommandTests(TestSetUp):
 
         with patch('openlxp_xia.management.commands.'
                    'validate_target_metadata'
-                   '.get_target_metadata_key_value',
-                   return_value=None) as mock_get_target_kv, \
-                patch('openlxp_xia.management.commands.'
-                      'validate_target_metadata'
-                      '.store_target_metadata_validation_status',
-                      return_value=None) as mock_store_target_valid_status:
-            mock_get_target_kv.return_value = mock_get_target_kv
-            mock_get_target_kv.exclude.return_value = mock_get_target_kv
-            mock_get_target_kv.filter.side_effect = [
-                mock_get_target_kv, mock_get_target_kv]
-
+                   '.store_target_metadata_validation_status',
+                   return_value=None) as mock_store_target_valid_status:
             validate_target_using_key(data,
                                       self.test_target_required_column_names,
                                       self.recommended_column_name)
@@ -275,11 +300,9 @@ class CommandTests(TestSetUp):
         into XIS  and calls the post_data_to_xis accordingly"""
         with patch('openlxp_xia.management.commands.'
                    'load_target_metadata.post_data_to_xis', return_value=None
-                   )as \
-                mock_post_data_to_xis, \
-                patch('openlxp_xia.management.commands.'
-                      'load_target_metadata.MetadataLedger.objects') as \
-                meta_obj:
+                   )as mock_post_data_to_xis, \
+                patch('openlxp_xia.management.commands.load_target_metadata.'
+                      'MetadataLedger.objects') as meta_obj:
             meta_data = MetadataLedger(
                 record_lifecycle_status='Active',
                 source_metadata=self.source_metadata,
@@ -327,10 +350,8 @@ class CommandTests(TestSetUp):
                       '.get_publisher_detail'), \
                 patch('openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
-                patch(
-                    'openlxp_xia.management.commands.'
-                    'load_target_metadata.MetadataLedger.objects') as \
-                meta_obj, \
+                patch('openlxp_xia.management.commands.load_target_metadata.'
+                      'MetadataLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
                 patch(
                     'openlxp_xia.management.commands.'
@@ -365,18 +386,14 @@ class CommandTests(TestSetUp):
                       '.get_publisher_detail'), \
                 patch('openlxp_xia.management.utils.xia_internal'
                       '.XIAConfiguration.objects') as xiaCfg, \
-                patch(
-                    'openlxp_xia.management.commands'
-                    '.load_target_metadata.MetadataLedger.objects') \
-                as meta_obj, \
+                patch('openlxp_xia.management.commands.load_target_metadata.'
+                      'MetadataLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
-                patch('openlxp_xia.management.utils.xis_client'
-                      '.XISConfiguration.objects') as xisCfg, \
-                patch(
-                    'openlxp_xia.management.commands.'
-                    'load_target_metadata'
-                    '.get_records_to_load_into_xis',
-                    return_value=None) as mock_check_records_to_load:
+                patch('openlxp_xia.management.utils.xis_client.'
+                      'XISConfiguration.objects') as xisCfg, \
+                patch('openlxp_xia.management.commands.load_target_metadata.'
+                      'get_records_to_load_into_xis',
+                      return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xiaCfg.first.return_value = xiaConfig
             xisConfig = XISConfiguration(
@@ -456,10 +473,9 @@ class CommandTests(TestSetUp):
                 'load_supplemental_metadata'
                 '.post_supplemental_metadata_to_xis', return_value=None)as \
                 mock_post_data_to_xis, \
-                patch(
-                    'openlxp_xia.management.commands.'
-                    'load_supplemental_metadata.SupplementalLedger.objects') \
-                as meta_obj:
+                patch('openlxp_xia.management.commands.'
+                      'load_supplemental_metadata.'
+                      'SupplementalLedger.objects') as meta_obj:
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
@@ -486,10 +502,9 @@ class CommandTests(TestSetUp):
                     '.SupplementalLedger.objects') as meta_obj, \
                 patch('requests.post') as response_obj, \
                 patch('openlxp_xia.management.commands.'
-                      'load_supplemental_metadata'
-                      '.load_supplemental_metadata_to_xis',
-                      return_value=None) \
-                as mock_check_records_to_load:
+                      'load_supplemental_metadata.'
+                      'load_supplemental_metadata_to_xis',
+                      return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xiaCfg.first.return_value = xiaConfig
             response_obj.return_value = response_obj
@@ -549,26 +564,3 @@ class CommandTests(TestSetUp):
             post_supplemental_metadata_to_xis(data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
-
-    # Test cases for conformance_alerts
-
-    def test_send_log_email(self):
-        """Test for function to send emails of log file to personas"""
-        with patch('openlxp_xia.management.commands.conformance_alerts'
-                   '.ReceiverEmailConfiguration') as receive_email_cfg, \
-                patch(
-                    'openlxp_xia.management.commands.conformance_alerts'
-                    '.SenderEmailConfiguration') as sender_email_cfg, \
-                patch(
-                    'openlxp_xia.management.commands.conformance_alerts'
-                    '.send_notifications', return_value=None
-                ) as mock_send_notification:
-            receive_email = ReceiverEmailConfiguration(
-                email_address=self.receive_email_list)
-            receive_email_cfg.first.return_value = receive_email
-
-            send_email = SenderEmailConfiguration(
-                sender_email_address=self.sender_email)
-            sender_email_cfg.first.return_value = send_email
-            send_log_email()
-            self.assertEqual(mock_send_notification.call_count, 1)

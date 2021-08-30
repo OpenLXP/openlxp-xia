@@ -7,11 +7,12 @@ from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_target_metadata_key_value,
-    replace_field_on_target_schema)
+    replace_field_on_target_schema, type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_source_validation_schema,
     get_target_metadata_for_transformation)
-from openlxp_xia.models import MetadataLedger, SupplementalLedger
+from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
+                                SupplementalLedger)
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -23,7 +24,6 @@ def get_source_metadata_for_transformation():
         "Retrieving source metadata from MetadataLedger to be transformed")
     source_data_dict = MetadataLedger.objects.values(
         'source_metadata').filter(
-        source_metadata_validation_status='Y',
         record_lifecycle_status='Active',
         source_metadata_transformation_date=None).exclude(
         source_metadata_validation_date=None)
@@ -38,6 +38,45 @@ def create_supplemental_metadata(metadata_columns, supplemental_metadata):
         for column in metadata_column_list:
             supplemental_metadata.pop(column, None)
     return supplemental_metadata
+
+
+def get_metadata_fields_to_overwrite(metadata_df):
+    """looping through fields to be overwrite or appended"""
+    for each in MetadataFieldOverwrite.objects.all():
+        column = each.field_name
+        overwrite_flag = each.overwrite
+        # checking and converting type of overwritten values
+        value = type_cast_overwritten_values(each.field_type, each.field_value)
+
+        metadata_df = overwrite_append_metadata(metadata_df, column, value,
+                                                overwrite_flag)
+    return metadata_df
+
+
+def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
+    """Overwrite & append metadata fields based on overwrite flag """
+
+    # field should be overwritten and append
+    if overwrite_flag:
+        metadata_df[column] = value
+    # skip field to be overwritten and append
+    else:
+        if column not in metadata_df.columns:
+            metadata_df[column] = value
+        else:
+            metadata_df.loc[metadata_df[column].isnull(), column] = value
+    return metadata_df
+
+
+def overwrite_metadata_field(metadata_df):
+    """Overwrite & append metadata fields with admin entered values """
+    logger.info("Overwrite & append metadata fields with admin entered values")
+    # get metadata fields to be overwritten and appended and replace values
+    metadata_df = get_metadata_fields_to_overwrite(metadata_df)
+    # return source metadata as dictionary
+
+    source_data_dict = metadata_df.to_dict(orient='index')
+    return source_data_dict[0]
 
 
 def create_target_metadata_dict(target_mapping_dict, source_metadata,
@@ -57,26 +96,29 @@ def create_target_metadata_dict(target_mapping_dict, source_metadata,
     source_metadata = {
         k: '' if not v else v for k, v in
         source_metadata.items()}
-    # assigning flattened source data
-    metadata = dict_flatten(source_metadata, required_column_list)
 
-    # send values to be skipped while creating supplemental data
-    supplemental_metadata = \
-        create_supplemental_metadata(target_schema.values.tolist(), metadata)
+    # replacing fields to be overwritten or appended
+    metadata_df = pd.DataFrame(source_metadata, index=[0])
+    metadata = overwrite_metadata_field(metadata_df)
 
     # Replacing metadata schema with mapped values from source metadata
-    target_schema = target_schema.replace(source_metadata)
+
+    target_schema_replaced = target_schema.replace(metadata)
 
     # Dropping index value and creating json object
-    target_data = target_schema.apply(lambda x: [x.dropna()],
-                                      axis=1).to_json()
-
+    target_data = target_schema_replaced.apply(lambda x: [x.dropna()],
+                                               axis=1).to_json()
     # Creating dataframe from json object
     target_data_df = pd.read_json(target_data)
 
     # transforming target dataframe to dictionary object for replacing
     # values in target with new value
     target_data_dict = target_data_df.to_dict(orient='index')
+
+    # send values to be skipped while creating supplemental data
+
+    supplemental_metadata = \
+        create_supplemental_metadata(target_schema.values.tolist(), metadata)
 
     return target_data_dict, supplemental_metadata
 
@@ -90,14 +132,12 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         "source_metadata_extraction_date", flat=True).get(
         source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active',
-        source_metadata_validation_status='Y',
         source_metadata_transformation_date=None
     )
 
     data_for_transformation = MetadataLedger.objects.filter(
         source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active',
-        source_metadata_validation_status='Y',
         source_metadata_transformation_date=None
     )
 

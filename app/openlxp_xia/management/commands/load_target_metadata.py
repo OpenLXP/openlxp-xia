@@ -84,8 +84,7 @@ def get_records_to_load_into_xis():
             target_metadata_transmission_status='Failed'))
 
     data = combined_query.filter(
-        record_lifecycle_status='Active',
-        target_metadata_validation_status='Y').exclude(
+        record_lifecycle_status='Active').exclude(
         target_metadata_transmission_status_code=400).values(
         'metadata_record_uuid',
         'target_metadata',

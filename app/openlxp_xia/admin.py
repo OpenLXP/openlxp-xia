@@ -1,8 +1,20 @@
 from django.contrib import admin
 
-from .models import (MetadataFieldOverwrite, ReceiverEmailConfiguration,
-                     SenderEmailConfiguration, XIAConfiguration,
-                     XISConfiguration)
+from .models import MetadataFieldOverwrite, XIAConfiguration, XISConfiguration
+
+
+def marked_default(MetadataFieldOverwriteAdmin, request, queryset):
+    queryset.update(field_type='char')
+    queryset.update(field_value='Unavailable')
+
+
+def unmarked_default(MetadataFieldOverwriteAdmin, request, queryset):
+    queryset.update(field_type=None)
+    queryset.update(field_value=None)
+
+
+marked_default.short_description = "Mark default values for fields"
+unmarked_default.short_description = "Unmarked default values for fields"
 
 
 @admin.register(XIAConfiguration)
@@ -17,6 +29,11 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
               ('source_target_mapping',
                'target_metadata_schema')]
 
+    def delete_queryset(self, request, queryset):
+        metadata_fields = MetadataFieldOverwrite.objects.all()
+        metadata_fields.delete()
+        super().delete_queryset(request, queryset)
+
 
 @admin.register(XISConfiguration)
 class XISConfigurationAdmin(admin.ModelAdmin):
@@ -24,16 +41,6 @@ class XISConfigurationAdmin(admin.ModelAdmin):
                     'xis_supplemental_api_endpoint',)
     fields = ['xis_metadata_api_endpoint',
               'xis_supplemental_api_endpoint']
-
-
-@admin.register(ReceiverEmailConfiguration)
-class ReceiverEmailConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('email_address',)
-
-
-@admin.register(SenderEmailConfiguration)
-class SenderEmailConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('sender_email_address',)
 
 
 @admin.register(MetadataFieldOverwrite)
@@ -46,3 +53,4 @@ class MetadataFieldOverwriteAdmin(admin.ModelAdmin):
               'field_type',
               'field_value',
               'overwrite']
+    actions = [marked_default, unmarked_default]
