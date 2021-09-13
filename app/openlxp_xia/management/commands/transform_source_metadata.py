@@ -65,6 +65,7 @@ def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
             metadata_df[column] = value
         else:
             metadata_df.loc[metadata_df[column].isnull(), column] = value
+            metadata_df.loc[metadata_df[column] == "", column] = value
     return metadata_df
 
 
