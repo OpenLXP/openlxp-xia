@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import logging
 from distutils.util import strtobool
+from dateutil.parser import parse
 
 from openlxp_xia.models import XIAConfiguration
 
@@ -106,6 +107,28 @@ def required_recommended_logs(id_num, category, field):
                 id_num) + " does not have all " + category +
             " fields."
             + field + " field is empty")
+
+    # Logs the inaccurate datatype columns
+    if category == 'datatype':
+        logger.warning(
+            "Record " + str(
+                id_num) + " does not have the expected " + category +
+            " for the field " + field)
+
+
+def is_date(string, fuzzy=False):
+    """
+    Return whether the string can be interpreted as a date.
+
+    :param string: str, string to check for date
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try:
+        parse(string, fuzzy=fuzzy)
+        return True
+
+    except ValueError:
+        return False
 
 
 def dict_flatten(data_dict, required_column_list):

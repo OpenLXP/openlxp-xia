@@ -74,6 +74,32 @@ def get_required_fields_for_validation(schema_data_dict):
     return required_column_list, recommended_column_list
 
 
+def get_data_types_for_validation(schema_data_dict):
+    """Creating list of fields which are Required & Recommended"""
+
+    # Call function to flatten schema used for validation
+    flattened_schema_dict = dict_flatten(schema_data_dict, [])
+
+    # mapping from string to datatype objects
+    datatype_to_object = {
+        "int": int,
+        "str": str,
+        "bool": bool
+    }
+    expected_data_types = dict()
+
+    #  updating dictionary with expected datatype values for fields in metadata
+    for column, value in flattened_schema_dict.items():
+        if column.endswith(".data_type"):
+            key = column[:-len(".data_type")]
+            if value in datatype_to_object:
+                value = datatype_to_object[value]
+            expected_data_types.update({key: value})
+
+    # Returning required and recommended list for validation
+    return expected_data_types
+
+
 def get_target_metadata_for_transformation():
     """Retrieve target metadata schema from XIA configuration """
     logger.info("Configuration of schemas and files for transformation")
