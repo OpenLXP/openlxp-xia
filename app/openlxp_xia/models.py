@@ -57,16 +57,31 @@ class XIAConfiguration(TimeStampedModel):
         # saving required column values to be overwritten
         for section in target:
             for key, val in target[section].items():
-                if val == 'Required':
-                    if section in mapping and key in mapping[section]:
-                        metadata_field_overwrite = MetadataFieldOverwrite()
-                        metadata_field_overwrite.field_name = \
-                            mapping[section][key]
-                        metadata_field_overwrite.save()
-                    else:
-                        logger.error("Mapping for required value " +
-                                     section + "." + key +
-                                     " not found in schema mapping")
+                if "use" in val:
+                    if val["use"] == 'Required':
+                        if section in mapping and key in mapping[section]:
+                            metadata_field_overwrite = MetadataFieldOverwrite()
+                            metadata_field_overwrite.field_name = \
+                                mapping[section][key]
+                            # assigning default value for datatype field
+                            # for metadata
+                            metadata_field_overwrite.field_type = "str"
+                            # assigning datatype field from schema
+                            if "data_type" in val:
+                                metadata_field_overwrite. \
+                                    field_type = val["data_type"]
+                            # logging if datatype for field not present in
+                            # schema
+                            else:
+                                logger.warning("Datatype for required value " +
+                                               section + "." + key +
+                                               " not found in schema mapping")
+                            metadata_field_overwrite.save()
+                        # logging is mapping for metadata not present in schema
+                        else:
+                            logger.error("Mapping for required value " +
+                                         section + "." + key +
+                                         " not found in schema mapping")
 
     def save(self, *args, **kwargs):
         # Retrieve list of field required to be overwritten
@@ -181,16 +196,15 @@ class MetadataFieldOverwrite(TimeStampedModel):
     """Model for taking list of fields name and it's values for overwriting
     field values in Source metadata"""
 
-    COLOR_CHOICES = (
+    DATATYPE_CHOICES = (
         ('datetime', 'DATETIME'),
         ('int', 'INTEGER'),
-        ('char', 'CHARACTER'),
+        ('str', 'CHARACTER'),
         ('bool', 'BOOLEAN'),
-        ('txt', 'TEXT'),
     )
 
     field_name = models.CharField(max_length=200)
-    field_type = models.CharField(max_length=200, choices=COLOR_CHOICES,
+    field_type = models.CharField(max_length=200, choices=DATATYPE_CHOICES,
                                   null=True)
     field_value = models.CharField(max_length=200, null=True)
     overwrite = models.BooleanField(default=False)
