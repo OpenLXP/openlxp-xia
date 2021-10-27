@@ -171,7 +171,8 @@ class CommandIntegration(TestSetUp):
                                    field_value='new_value', overwrite=True)
         test_metadata_overwrite.save()
         transform_source_using_key(test_data_dict, self.source_target_mapping,
-                                   self.test_required_column_names)
+                                   self.test_required_column_names,
+                                   self.expected_datatype)
 
         result_data = MetadataLedger.objects.filter(
             source_metadata_key=self.key_value_overwrite,
@@ -230,7 +231,8 @@ class CommandIntegration(TestSetUp):
             source_metadata_validation_date=None)
 
         transform_source_using_key(test_data_dict, self.source_target_mapping,
-                                   self.test_required_column_names)
+                                   self.test_required_column_names,
+                                   self.expected_datatype)
 
         result_data = MetadataLedger.objects.filter(
             source_metadata_key=self.key_value,
@@ -358,7 +360,7 @@ class CommandIntegration(TestSetUp):
 
         validate_target_using_key(
             test_data, self.test_target_required_column_names,
-            self.recommended_column_name)
+            self.recommended_column_name, self.expected_datatype)
         result_query = MetadataLedger.objects.values(
             'target_metadata_validation_status', 'record_lifecycle_status'). \
             filter(target_metadata_key_hash=self.target_key_value_hash).first()

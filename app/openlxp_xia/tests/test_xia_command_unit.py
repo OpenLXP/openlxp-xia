@@ -15,11 +15,12 @@ from openlxp_xia.management.commands.transform_source_metadata import (
     create_supplemental_metadata, create_target_metadata_dict,
     get_metadata_fields_to_overwrite, get_source_metadata_for_transformation,
     overwrite_append_metadata, overwrite_metadata_field,
-    transform_source_using_key)
+    transform_source_using_key, type_checking_target_metadata)
 from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation, validate_source_using_key)
 from openlxp_xia.management.commands.validate_target_metadata import (
-    get_target_metadata_for_validation, validate_target_using_key)
+    get_target_metadata_for_validation, update_previous_instance_in_metadata,
+    validate_target_using_key)
 from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
                                 SupplementalLedger, XIAConfiguration,
                                 XISConfiguration)
@@ -84,6 +85,16 @@ class CommandTests(TestSetUp):
 
     # Test cases for transform_source_metadata
 
+    def test_type_checking_target_metadata(self):
+        """"Test function for type checking and explicit type conversion of
+        metadata """
+        target_metadata = {
+            0: self.target_metadata}
+        target_metadata = type_checking_target_metadata(1, target_metadata,
+                                                        self.expected_datatype)
+        self.assertIsInstance(target_metadata[0]['General_Information'][
+                                  "EndDate"], str)
+
     def test_get_source_metadata_for_transformation(self):
         """Test to Retrieving Source metadata from MetadataLedger that needs
         to be transformed"""
@@ -119,8 +130,8 @@ class CommandTests(TestSetUp):
                       'transform_source_metadata.create_supplemental_metadata',
                       return_value=None):
             result_data_dict, supplemental_data = create_target_metadata_dict(
-                self.source_target_mapping, self.source_metadata,
-                self.test_required_column_names)
+                1, self.source_target_mapping, self.source_metadata,
+                self.test_required_column_names, self.expected_datatype)
             self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
                              expected_data_dict[0]['Course'].get('CourseCode'))
             self.assertEqual(
@@ -146,7 +157,8 @@ class CommandTests(TestSetUp):
                 mock_store_transformed_source, mock_store_transformed_source]
 
             transform_source_using_key(data, self.source_target_mapping,
-                                       self.test_required_column_names)
+                                       self.test_required_column_names,
+                                       self.expected_datatype)
 
             self.assertEqual(
                 mock_store_transformed_source.call_count, 0)
@@ -171,7 +183,8 @@ class CommandTests(TestSetUp):
                 mock_store_transformed_source, mock_store_transformed_source]
 
             transform_source_using_key(data, self.source_target_mapping,
-                                       self.test_required_column_names)
+                                       self.test_required_column_names,
+                                       self.expected_datatype)
 
             self.assertEqual(
                 mock_store_transformed_source.call_count, 2)
@@ -255,7 +268,8 @@ class CommandTests(TestSetUp):
                    '.store_target_metadata_validation_status',
                    return_value=None) as mock_store_target_valid_status:
             validate_target_using_key(data, test_required_column_names,
-                                      recommended_column_name)
+                                      recommended_column_name,
+                                      self.expected_datatype)
             self.assertEqual(
                 mock_store_target_valid_status.call_count, 2)
 
@@ -271,9 +285,30 @@ class CommandTests(TestSetUp):
                    return_value=None) as mock_store_target_valid_status:
             validate_target_using_key(data,
                                       self.test_target_required_column_names,
-                                      self.recommended_column_name)
+                                      self.recommended_column_name,
+                                      self.expected_datatype)
 
             self.assertEqual(mock_store_target_valid_status.call_count, 0)
+
+    def test_update_previous_instance_in_metadata(self):
+        """test to check Update older instances of record to inactive status"""
+        metadata = MetadataLedger(source_metadata=self.source_metadata,
+                                  target_metadata=self.target_metadata,
+                                  target_metadata_key=self.target_key_value,
+                                  target_metadata_key_hash=self.
+                                  target_key_value_hash,
+                                  source_metadata_key_hash=self.
+                                  target_key_value_hash,
+                                  target_metadata_hash=self.target_hash_value,
+                                  record_lifecycle_status='Active',
+                                  target_metadata_validation_date=timezone.
+                                  now())
+        metadata.save()
+        update_previous_instance_in_metadata(self.key_value_hash)
+
+        updated_value = MetadataLedger.objects. \
+            get(target_metadata_key_hash=self.target_key_value_hash)
+        self.assertEqual(updated_value.record_lifecycle_status, 'Inactive')
 
     # Test cases for load_target_metadata
 

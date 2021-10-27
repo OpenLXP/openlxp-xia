@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import logging
 from distutils.util import strtobool
+
 from dateutil.parser import parse
 
 from openlxp_xia.models import XIAConfiguration
@@ -123,11 +124,14 @@ def is_date(string, fuzzy=False):
     :param string: str, string to check for date
     :param fuzzy: bool, ignore unknown tokens in string if True
     """
-    try:
-        parse(string, fuzzy=fuzzy)
-        return True
+    if isinstance(string, str):
+        try:
+            parse(string, fuzzy=fuzzy)
+            return True
 
-    except ValueError:
+        except ValueError:
+            return False
+    else:
         return False
 
 

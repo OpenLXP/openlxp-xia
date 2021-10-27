@@ -6,13 +6,13 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, get_target_metadata_key_value,
-    replace_field_on_target_schema, type_cast_overwritten_values, is_date,
-    required_recommended_logs)
+    dict_flatten, get_target_metadata_key_value, is_date,
+    replace_field_on_target_schema, required_recommended_logs,
+    type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
-    get_required_fields_for_validation, get_source_validation_schema,
-    get_target_metadata_for_transformation, get_target_validation_schema,
-    get_data_types_for_validation)
+    get_data_types_for_validation, get_required_fields_for_validation,
+    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_target_validation_schema)
 from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
                                 SupplementalLedger)
 
