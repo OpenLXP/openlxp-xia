@@ -6,11 +6,13 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, get_target_metadata_key_value,
-    replace_field_on_target_schema, type_cast_overwritten_values)
+    dict_flatten, get_target_metadata_key_value, is_date,
+    replace_field_on_target_schema, required_recommended_logs,
+    type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
-    get_required_fields_for_validation, get_source_validation_schema,
-    get_target_metadata_for_transformation)
+    get_data_types_for_validation, get_required_fields_for_validation,
+    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_target_validation_schema)
 from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
                                 SupplementalLedger)
 
@@ -65,12 +67,12 @@ def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
             metadata_df[column] = value
         else:
             metadata_df.loc[metadata_df[column].isnull(), column] = value
+            metadata_df.loc[metadata_df[column] == "", column] = value
     return metadata_df
 
 
 def overwrite_metadata_field(metadata_df):
     """Overwrite & append metadata fields with admin entered values """
-    logger.info("Overwrite & append metadata fields with admin entered values")
     # get metadata fields to be overwritten and appended and replace values
     metadata_df = get_metadata_fields_to_overwrite(metadata_df)
     # return source metadata as dictionary
@@ -79,8 +81,39 @@ def overwrite_metadata_field(metadata_df):
     return source_data_dict[0]
 
 
-def create_target_metadata_dict(target_mapping_dict, source_metadata,
-                                required_column_list):
+def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
+    """Function for type checking and explicit type conversion of metadata"""
+    for index in target_data_dict:
+        for section in target_data_dict[index]:
+            for key in target_data_dict[index][section]:
+                item = section + '.' + key
+                # check if item has a expected datatype from schema
+                if item in expected_data_types:
+                    # check for datetime datatype for field in metadata
+                    if expected_data_types[item] == "datetime":
+                        if not is_date(target_data_dict[index][section][key]):
+                            # explicitly convert to string if incorrect
+                            target_data_dict[index][section][key] = str(
+                                target_data_dict[index][section][key])
+                            required_recommended_logs(ind, "datatype",
+                                                      item)
+                    # check for datatype for field in metadata(except datetime)
+                    elif (not isinstance(target_data_dict[index][section][key],
+                                         expected_data_types[item])):
+                        # explicitly convert to string if incorrect
+                        target_data_dict[index][section][key] = str(
+                            target_data_dict[index][section][key])
+                        required_recommended_logs(ind, "datatype",
+                                                  item)
+                # explicitly convert to string if datatype not present
+                else:
+                    target_data_dict[index][section][key] = str(
+                        target_data_dict[index][section][key])
+    return target_data_dict
+
+
+def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
+                                required_column_list, expected_data_types):
     """Function to replace and transform source data to target data for
     using target mapping schema"""
 
@@ -114,6 +147,10 @@ def create_target_metadata_dict(target_mapping_dict, source_metadata,
     # transforming target dataframe to dictionary object for replacing
     # values in target with new value
     target_data_dict = target_data_df.to_dict(orient='index')
+
+    # type checking and explicit type conversion of metadata
+    target_data_dict = type_checking_target_metadata(ind, target_data_dict,
+                                                     expected_data_types)
 
     # send values to be skipped while creating supplemental data
 
@@ -164,22 +201,24 @@ def store_transformed_source_metadata(key_value, key_value_hash,
 
 
 def transform_source_using_key(source_data_dict, target_mapping_dict,
-                               required_column_list):
+                               required_column_list, expected_data_types):
     """Transforming source data using target metadata schema"""
     logger.info(
         "Transforming source data using target renaming and mapping "
         "schemas and storing in json format ")
     logger.info("Identifying supplemental data and storing them ")
     len_source_metadata = len(source_data_dict)
+    logger.info(
+        "Overwrite & append metadata fields with admin entered values")
     for ind in range(len_source_metadata):
         for table_column_name in source_data_dict[ind]:
-
             target_data_dict, supplemental_metadata = \
-                create_target_metadata_dict(target_mapping_dict,
+                create_target_metadata_dict(ind, target_mapping_dict,
                                             source_data_dict
                                             [ind]
                                             [table_column_name],
-                                            required_column_list
+                                            required_column_list,
+                                            expected_data_types
                                             )
             # Looping through target values in dictionary
             for ind1 in target_data_dict:
@@ -211,9 +250,11 @@ class Command(BaseCommand):
         target_mapping_dict = get_target_metadata_for_transformation()
         source_data_dict = get_source_metadata_for_transformation()
         schema_data_dict = get_source_validation_schema()
+        schema_validation = get_target_validation_schema()
         required_column_list, recommended_column_list = \
             get_required_fields_for_validation(schema_data_dict)
+        expected_data_types = get_data_types_for_validation(schema_validation)
         transform_source_using_key(source_data_dict, target_mapping_dict,
-                                   required_column_list)
+                                   required_column_list, expected_data_types)
 
         logger.info('MetadataLedger updated with transformed data in XIA')

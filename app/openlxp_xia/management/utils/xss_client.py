@@ -66,12 +66,42 @@ def get_required_fields_for_validation(schema_data_dict):
     #  Adding values to required and recommended list based on schema
     for column, value in flattened_schema_dict.items():
         if value == "Required":
+            if column.endswith(".use"):
+                column = column[:-len(".use")]
             required_column_list.append(column)
         elif value == "Recommended":
+            if column.endswith(".use"):
+                column = column[:-len(".use")]
             recommended_column_list.append(column)
 
     # Returning required and recommended list for validation
     return required_column_list, recommended_column_list
+
+
+def get_data_types_for_validation(schema_data_dict):
+    """Creating list of fields with the expected datatype objects"""
+
+    # Call function to flatten schema used for validation
+    flattened_schema_dict = dict_flatten(schema_data_dict, [])
+
+    # mapping from string to datatype objects
+    datatype_to_object = {
+        "int": int,
+        "str": str,
+        "bool": bool
+    }
+    expected_data_types = dict()
+
+    #  updating dictionary with expected datatype values for fields in metadata
+    for column, value in flattened_schema_dict.items():
+        if column.endswith(".data_type"):
+            key = column[:-len(".data_type")]
+            if value in datatype_to_object:
+                value = datatype_to_object[value]
+            expected_data_types.update({key: value})
+
+    # Returning required and recommended list for validation
+    return expected_data_types
 
 
 def get_target_metadata_for_transformation():

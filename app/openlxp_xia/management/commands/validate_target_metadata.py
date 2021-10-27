@@ -4,9 +4,10 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, required_recommended_logs)
+    dict_flatten, is_date, required_recommended_logs)
 from openlxp_xia.management.utils.xss_client import (
-    get_required_fields_for_validation, get_target_validation_schema)
+    get_data_types_for_validation, get_required_fields_for_validation,
+    get_target_validation_schema)
 from openlxp_xia.models import MetadataLedger, SupplementalLedger
 
 logger = logging.getLogger('dict_config_logger')
@@ -82,7 +83,7 @@ def store_target_metadata_validation_status(target_data_dict, key_value_hash,
 
 
 def validate_target_using_key(target_data_dict, required_column_list,
-                              recommended_column_list):
+                              recommended_column_list, expected_data_types):
     """Validating target data against required & recommended column names"""
 
     logger.info('Validating and updating records in MetadataLedger table for '
@@ -98,27 +99,43 @@ def validate_target_using_key(target_data_dict, required_column_list,
                                              ['target_metadata'],
                                              required_column_list)
         # validate for required values in data
-        for item in required_column_list:
+        for item_name in required_column_list:
             # update validation and record status for invalid data
             # Log out error for missing required values
-            if item in flattened_source_data:
-                if not flattened_source_data[item]:
+            # item_name = item[:-len(".use")]
+            if item_name in flattened_source_data:
+                if not flattened_source_data[item_name]:
                     validation_result = 'N'
                     record_status_result = 'Inactive'
-                    required_recommended_logs(ind, "Required", item)
+                    required_recommended_logs(ind, "Required", item_name)
             else:
                 validation_result = 'N'
                 record_status_result = 'Inactive'
-                required_recommended_logs(ind, "Required", item)
+                required_recommended_logs(ind, "Required", item_name)
 
         # validate for recommended values in data
-        for item in recommended_column_list:
+        for item_name in recommended_column_list:
             # Log out warning for missing recommended values
-            if item in flattened_source_data:
-                if not flattened_source_data[item]:
-                    required_recommended_logs(ind, "Recommended", item)
+            # item_name = item[:-len(".use")]
+            if item_name in flattened_source_data:
+                if not flattened_source_data[item_name]:
+                    required_recommended_logs(ind, "Recommended", item_name)
             else:
-                required_recommended_logs(ind, "Recommended", item)
+                required_recommended_logs(ind, "Recommended", item_name)
+        # Type checking for values in metadata
+        for item in flattened_source_data:
+            # check if datatype has been assigned to field
+            if item in expected_data_types:
+                # type checking for datetime datatype fields
+                if expected_data_types[item] == "datetime":
+                    if not is_date(flattened_source_data[item]):
+                        required_recommended_logs(ind, "datatype",
+                                                  item)
+                # type checking for datatype fields(except datetime)
+                elif (not isinstance(flattened_source_data[item],
+                                     expected_data_types[item])):
+                    required_recommended_logs(ind, "datatype",
+                                              item)
 
         # assigning key hash value for source metadata
         key_value_hash = target_data_dict[ind]['target_metadata_key_hash']
@@ -143,7 +160,8 @@ class Command(BaseCommand):
         required_column_list, recommended_column_list = \
             get_required_fields_for_validation(
                 schema_data_dict)
+        expected_data_types = get_data_types_for_validation(schema_data_dict)
         validate_target_using_key(target_data_dict, required_column_list,
-                                  recommended_column_list)
+                                  recommended_column_list, expected_data_types)
         logger.info(
             'MetadataLedger updated with target metadata validation status')

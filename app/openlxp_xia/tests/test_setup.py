@@ -46,8 +46,8 @@ class TestSetUp(TestCase):
                 "CourseURL": "https://agent.tes.com/ui/lms-learning-details"
             },
             "General_Information": {
-                "EndDate": "end_date",
-                "StartDate": "start_date"
+                "EndDate": 1,
+                "StartDate": "1900-01-01T00:00:00-05:00"
             }
         }
 
@@ -286,57 +286,150 @@ class TestSetUp(TestCase):
             'test_images': 'Optional',
             'test1_id': 'Optional',
             'test_url': 'Optional',
-            'Start_date': 'Required',
+            'Start_date.use': 'Required',
             'End_date': 'Required',
             'Test_current': 'Recommended'
         }
 
         self.target_data_dict = {
             'Course': {
-                'CourseProviderName': 'Required',
-                'DepartmentName': 'Optional',
-                'CourseCode': 'Required',
-                'CourseTitle': 'Required',
-                'CourseDescription': 'Required',
-                'CourseShortDescription': 'Required',
-                'CourseFullDescription': 'Optional',
-                'CourseAudience': 'Optional',
-                'CourseSectionDeliveryMode': 'Optional',
-                'CourseObjective': 'Optional',
-                'CoursePrerequisites': 'Optional',
-                'EstimatedCompletionTime': 'Optional',
-                'CourseSpecialNotes': 'Optional',
-                'CourseAdditionalInformation': 'Optional',
-                'CourseURL': 'Optional',
-                'CourseLevel': 'Optional',
-                'CourseSubjectMatter': 'Required'
+                'CourseProviderName': {
+                    'use': 'Required'
+                },
+                'DepartmentName': {
+                    'use': 'Optional'
+                },
+                'CourseCode': {
+                    'use': 'Required'
+                },
+                'CourseTitle': {
+                    'use': 'Required'
+                },
+                'CourseDescription': {
+                    'use': 'Required'
+                },
+                'CourseShortDescription': {
+                    'use': 'Required'
+                },
+                'CourseFullDescription': {
+                    'use': 'Optional'
+                },
+                'CourseAudience': {
+                    'use': 'Optional'
+                },
+                'CourseSectionDeliveryMode': {
+                    'use': 'Optional'
+                },
+                'CourseObjective': {
+                    'use': 'Optional'
+                },
+                'CoursePrerequisites': {
+                    'use': 'Optional'
+                },
+                'EstimatedCompletionTime': {
+                    'use': 'Optional'
+                },
+                'CourseSpecialNotes': {
+                    'use': 'Optional'
+                },
+                'CourseAdditionalInformation': {
+                    'use': 'Optional'
+                },
+                'CourseURL': {
+                    'use': 'Optional'
+                },
+                'CourseLevel': {
+                    'use': 'Optional'
+                },
+                'CourseSubjectMatter': {
+                    'use': 'Required'
+                }
             },
             'CourseInstance': {
-                'CourseCode': 'Required',
-                'CourseTitle': 'Required',
-                'Thumbnail': 'Recommended',
-                'CourseShortDescription': 'Optional',
-                'CourseFullDescription': 'Optional',
-                'CourseURL': 'Optional',
-                'StartDate': 'Required',
-                'EndDate': 'Required',
-                'EnrollmentStartDate': 'Optional',
-                'EnrollmentEndDate': 'Optional',
-                'DeliveryMode': 'Required',
-                'InLanguage': 'Optional',
-                'Instructor': 'Required',
-                'Duration': 'Optional',
-                'CourseLearningOutcome': 'Optional',
-                'CourseLevel': 'Optional',
-                'InstructorBio': 'Optional'
+                'CourseCode': {
+                    'use': 'Required'
+                },
+                'CourseTitle': {
+                    'use': 'Required'
+                },
+                'Thumbnail': {
+                    'use': 'Recommended'
+                },
+                'CourseShortDescription': {
+                    'use': 'Optional'
+                },
+                'CourseFullDescription': {
+                    'use': 'Optional'
+                },
+                'CourseURL': {
+                    'use': 'Optional'
+                },
+                'StartDate': {
+                    'use': 'Required'
+                },
+                'EndDate': {
+                    'use': 'Required'
+                },
+                'EnrollmentStartDate': {
+                    'use': 'Optional'
+                },
+                'EnrollmentEndDate': {
+                    'use': 'Optional'
+                },
+                'DeliveryMode': {
+                    'use': 'Required'
+                },
+                'InLanguage': {
+                    'use': 'Optional'
+                },
+                'Instructor': {
+                    'use': 'Required'
+                },
+                'Duration': {
+                    'use': 'Optional'
+                },
+                'CourseLearningOutcome': {
+                    'use': 'Optional'
+                },
+                'CourseLevel': {
+                    'use': 'Optional'
+                },
+                'InstructorBio': {
+                    'use': 'Optional'
+                }
             },
             'General_Information': {
-                'StartDate': 'Required',
-                'EndDate': 'Required'
+                'StartDate': {
+                    'use': 'Required',
+                    'data_type': 'datetime'
+                },
+                'EndDate': {
+                    'use': 'Required',
+                    'data_type': 'datetime'
+                }
             },
             'Technical_Information': {
-                'Thumbnail': 'Recommended'
-            }
+                'Thumbnail': {
+                    'use': 'Recommended'
+                }
+            }}
+
+        self.expected_datatype = {
+            'General_Information.StartDate': 'datetime',
+            'General_Information.EndDate': 'datetime'}
+
+        self.datatype_list_as_string = {
+            'key1.data_type': 'datetime',
+            'key2.data_type': 'str',
+            'key3.data_type': 'int',
+            'key4.data_type': 'bool'
+        }
+
+        self.datatype_list_as_object = {
+            'key1': 'datetime',
+            'key2': str,
+            'key3': int,
+            'key4': bool
         }
 
         self.test_target_required_column_names = {

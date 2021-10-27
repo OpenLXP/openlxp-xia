@@ -7,15 +7,15 @@ from django.test import tag
 
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, flatten_dict_object, flatten_list_object, get_key_dict,
-    get_publisher_detail, get_target_metadata_key_value,
+    get_publisher_detail, get_target_metadata_key_value, is_date,
     replace_field_on_target_schema, type_cast_overwritten_values,
     update_flattened_object)
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from openlxp_xia.management.utils.xss_client import (
-    get_aws_bucket_name, get_required_fields_for_validation,
-    get_source_validation_schema, get_target_metadata_for_transformation,
-    get_target_validation_schema)
+    get_aws_bucket_name, get_data_types_for_validation,
+    get_required_fields_for_validation, get_source_validation_schema,
+    get_target_metadata_for_transformation, get_target_validation_schema)
 from openlxp_xia.models import XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
@@ -73,6 +73,13 @@ class UtilsTests(TestSetUp):
         replace_field_on_target_schema('1', test_dict1)
         self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
                          'Non - Mandatory')
+
+    @data((1, False), ("1990-12-1", True), ("Monday at 12:01am", True))
+    @unpack
+    def test_is_date(self, value_to_be_tested, result):
+        """tests whether the string can be interpreted as a date."""
+        check = is_date(value_to_be_tested)
+        self.assertEqual(check, result)
 
     @data(('key_field1', 'key_field2'), ('key_field11', 'key_field22'))
     @unpack
@@ -402,6 +409,13 @@ class UtilsTests(TestSetUp):
             return_from_function = get_source_validation_schema()
             self.assertEqual(read_obj.return_value,
                              return_from_function)
+
+    def test_get_data_types_for_validation(self):
+        """Creating list of fields with the expected datatype objects"""
+
+        converted_dict = \
+            get_data_types_for_validation(self.datatype_list_as_string)
+        self.assertEqual(converted_dict, self.datatype_list_as_object)
 
     def test_get_required_fields_for_validation(self):
         """Test for Creating list of fields which are Required """
