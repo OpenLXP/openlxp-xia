@@ -242,18 +242,30 @@ def type_cast_overwritten_values(field_type, field_value):
     """function to check type of overwritten value and convert it into
     required format"""
     value = field_value
-    if field_type == "int":
-        try:
-            value = int(field_value)
-        except ValueError:
-            logger.error("Field Value " + field_value +
-                         " and Field Data type " + field_type +
-                         " do not match")
-    if field_type == "bool":
-        try:
-            value = strtobool(field_value)
-        except ValueError:
-            logger.error("Field Value " + field_value +
-                         " and Field Data type " + field_type +
-                         " do not match")
+    if field_value:
+        if field_type == "int":
+            try:
+                value = int(field_value)
+            except ValueError or TypeError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " do not match")
+
+        if field_type == "bool":
+            try:
+                value = strtobool(field_value)
+            except ValueError or TypeError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " do not match")
+        if field_type == "datetime":
+            try:
+                value = is_date(field_value)
+            except ValueError or TypeError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " do not match")
+    else:
+        return None
+
     return value
