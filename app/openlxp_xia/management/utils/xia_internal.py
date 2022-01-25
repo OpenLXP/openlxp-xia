@@ -260,7 +260,7 @@ def type_cast_overwritten_values(field_type, field_value):
                              " do not match")
         if field_type == "datetime":
             try:
-                value = is_date(field_value)
+                check = is_date(field_value)
             except ValueError or TypeError:
                 logger.error("Field Value " + field_value +
                              " and Field Data type " + field_type +
