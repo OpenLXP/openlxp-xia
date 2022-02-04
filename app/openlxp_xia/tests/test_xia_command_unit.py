@@ -222,10 +222,10 @@ class CommandTests(TestSetUp):
     def test_overwrite_append_metadata(self):
         """test Overwrite & append metadata fields based on overwrite flag """
         return_val = \
-            overwrite_append_metadata(self.metadata_df, 'column1', 'value1',
+            overwrite_append_metadata(self.metadata_df, 'column_1', 'value_1',
                                       True)
 
-        self.assertEqual(return_val['column1'].all(), 'value1')
+        self.assertEqual(return_val['column_1'].all(), 'value_1')
 
     # Test cases for validate_target_metadata
 
