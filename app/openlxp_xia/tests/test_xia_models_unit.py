@@ -1,4 +1,7 @@
-from django.test import SimpleTestCase, tag
+from unittest.mock import patch
+
+from django.core.exceptions import ValidationError
+from django.test import TestCase, tag
 from django.utils import timezone
 
 from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
@@ -7,7 +10,7 @@ from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
 
 
 @tag('unit')
-class ModelTests(SimpleTestCase):
+class ModelTests(TestCase):
 
     def test_create_xia_configuration(self):
         """Test that creating a new XIA Configuration entry is successful
@@ -27,6 +30,22 @@ class ModelTests(SimpleTestCase):
                          source_target_mapping)
         self.assertEqual(xiaConfig.target_metadata_schema,
                          target_metadata_schema)
+
+    def test_create_two_xia_configuration(self):
+        """Test that trying to create more than one XIS Configuration throws
+        ValidationError """
+        with patch("openlxp_xia.models.XIAConfiguration.field_overwrite"):
+            with self.assertRaises(ValidationError):
+                xiaConfig = \
+                    XIAConfiguration(source_metadata_schema="example1.json",
+                                     source_target_mapping="example1.json",
+                                     target_metadata_schema="example1.json")
+                xiaConfig2 = \
+                    XIAConfiguration(source_metadata_schema="example2.json",
+                                     source_target_mapping="example2.json",
+                                     target_metadata_schema="example2.json")
+                xiaConfig.save()
+                xiaConfig2.save()
 
     def test_create_xis_configuration(self):
         """Test that creating a new XIS Configuration entry is successful
