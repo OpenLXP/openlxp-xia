@@ -247,7 +247,11 @@ def type_cast_overwritten_values(field_type, field_value):
         if field_type == "int":
             try:
                 value = int(field_value)
-            except ValueError or TypeError:
+            except ValueError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " is not valid")
+            except TypeError:
                 logger.error("Field Value " + field_value +
                              " and Field Data type " + field_type +
                              " do not match")
@@ -255,14 +259,22 @@ def type_cast_overwritten_values(field_type, field_value):
         if field_type == "bool":
             try:
                 value = strtobool(field_value)
-            except ValueError or TypeError:
+            except ValueError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " is not valid")
+            except TypeError:
                 logger.error("Field Value " + field_value +
                              " and Field Data type " + field_type +
                              " do not match")
         if field_type == "datetime":
             try:
                 is_date(field_value)
-            except ValueError or TypeError:
+            except ValueError:
+                logger.error("Field Value " + field_value +
+                             " and Field Data type " + field_type +
+                             " is not valid")
+            except TypeError:
                 logger.error("Field Value " + field_value +
                              " and Field Data type " + field_type +
                              " do not match")
