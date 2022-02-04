@@ -225,7 +225,7 @@ class CommandTests(TestSetUp):
             overwrite_append_metadata(self.metadata_df, 'column_1', 'value_1',
                                       True)
 
-        self.assertEqual(return_val['column_1'].all(), 'value_1')
+        self.assertEqual(return_val['column_1'][0], 'value_1')
 
     # Test cases for validate_target_metadata
 
