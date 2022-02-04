@@ -351,7 +351,7 @@ class UtilsTests(TestSetUp):
         update_flattened_object(value, prefix, flatten_dict)
         self.assertTrue(flatten_dict)
 
-    @data(('int', '1234'), ('bool', 'Yes'))
+    @data(("int", '1234'), ("int", '-12'))
     @unpack
     def test_type_cast_overwritten_values(self, first_value, second_value):
         """Test the function to check type of overwritten value and convert it
@@ -359,7 +359,29 @@ class UtilsTests(TestSetUp):
         field_type = first_value
         field_value = second_value
         values = type_cast_overwritten_values(field_type, field_value)
-        self.assertTrue(values)
+        self.assertIsInstance(values, int)
+
+    @data(("int", ''))
+    @unpack
+    def test_type_cast_overwritten_values_None(self, first_value,
+                                               second_value):
+        """Test the function to check type of overwritten value and convert it
+        into required format"""
+        field_type = first_value
+        field_value = second_value
+        values = type_cast_overwritten_values(field_type, field_value)
+        self.assertFalse(values)
+
+    @data(("int", "test"))
+    @unpack
+    def test_type_cast_overwritten_values_false(self, first_value,
+                                                second_value):
+        """Test the function to check type of overwritten value and convert it
+        into required format"""
+        field_type = first_value
+        field_value = second_value
+        values = type_cast_overwritten_values(field_type, field_value)
+        self.assertNotIsInstance(values, int)
 
     # Test cases for XIS_CLIENT
 

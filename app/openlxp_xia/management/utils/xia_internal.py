@@ -7,7 +7,6 @@ from dateutil.parser import parse
 
 from openlxp_xia.models import XIAConfiguration
 
-
 logger = logging.getLogger('dict_config_logger')
 
 
