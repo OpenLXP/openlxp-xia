@@ -82,7 +82,7 @@ def get_target_metadata_key_value(data_dict):
     key_value = '_'.join(field_values)
 
     # Key value hash creation for source metadata
-    key_value_hash = hashlib.md5(key_value.encode('utf-8')).hexdigest()
+    key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
 
     # Key dictionary creation for source metadata
     key = get_key_dict(key_value, key_value_hash)

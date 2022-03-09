@@ -188,10 +188,14 @@ def store_transformed_source_metadata(key_value, key_value_hash,
         target_metadata=target_data_dict,
         target_metadata_hash=hash_value)
 
+    supplemental_hash_value = hashlib.sha512(
+        str(supplemental_metadata).encode(
+            'utf-8')).hexdigest()
+
     # check if metadata has corresponding supplemental values and store
     if supplemental_metadata:
-        SupplementalLedger.objects.create(
-            supplemental_metadata_hash=hash_value,
+        SupplementalLedger.objects.get_or_create(
+            supplemental_metadata_hash=supplemental_hash_value,
             supplemental_metadata_key=key_value,
             supplemental_metadata_key_hash=key_value_hash,
             supplemental_metadata_transformation_date=timezone.now(),
@@ -228,7 +232,7 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
                 # Key creation for target metadata
                 key = get_target_metadata_key_value(target_data_dict[ind1])
 
-                hash_value = hashlib.md5(
+                hash_value = hashlib.sha512(
                     str(target_data_dict[ind1]).encode(
                         'utf-8')).hexdigest()
                 store_transformed_source_metadata(key['key_value'],
