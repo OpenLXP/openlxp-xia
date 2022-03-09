@@ -92,7 +92,7 @@ class UtilsTests(TestSetUp):
         }}
 
         expected_key = first_value + '_' + second_value
-        expected_key_hash = hashlib.md5(expected_key.encode('utf-8')). \
+        expected_key_hash = hashlib.sha512(expected_key.encode('utf-8')). \
             hexdigest()
 
         result_key_dict = get_target_metadata_key_value(test_dict)

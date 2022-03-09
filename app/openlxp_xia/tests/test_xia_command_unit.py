@@ -17,7 +17,8 @@ from openlxp_xia.management.commands.transform_source_metadata import (
     overwrite_append_metadata, overwrite_metadata_field,
     transform_source_using_key, type_checking_target_metadata)
 from openlxp_xia.management.commands.validate_source_metadata import (
-    get_source_metadata_for_validation, validate_source_using_key)
+    get_source_metadata_for_validation, validate_source_using_key,
+    store_source_metadata_validation_status)
 from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, update_previous_instance_in_metadata,
     validate_target_using_key)
@@ -82,6 +83,75 @@ class CommandTests(TestSetUp):
                                       recommended_column_name)
             self.assertEqual(
                 mock_store_source_valid_status.call_count, 0)
+
+    def test_store_source_metadata_validation_status_valid(self):
+        """Test to store source metadata with validation details"""
+
+        metadata_ledger = MetadataLedger(
+            record_lifecycle_status='Active',
+            source_metadata=self.source_metadata,
+            source_metadata_hash=self.hash_value,
+            source_metadata_key=self.key_value,
+            source_metadata_key_hash=self.key_value_hash,
+            source_metadata_extraction_date=timezone.now())
+        metadata_ledger.save()
+
+        source_data_dict = \
+            MetadataLedger.objects.values('source_metadata_key_hash',
+                                          'source_metadata').filter(
+                source_metadata_validation_status='',
+                record_lifecycle_status='Active').exclude(
+                source_metadata_extraction_date=None)
+
+        store_source_metadata_validation_status(
+            source_data_dict, self.key_value_hash, 'Y',
+            'Active', self.source_metadata)
+
+        result_metadata = \
+            MetadataLedger.objects.values(
+                "source_metadata_validation_status",
+                "source_metadata_validation_date").filter(
+                source_metadata_key_hash=self.key_value_hash,
+                record_lifecycle_status='Active').first()
+
+        self.assertEqual('Y',
+                         result_metadata['source_metadata_validation_status'])
+        self.assertTrue(result_metadata['source_metadata_validation_date'])
+
+    def test_store_source_metadata_validation_status_invalid(self):
+        """Test to store source metadata with validation details"""
+
+        metadata_ledger = MetadataLedger(
+            record_lifecycle_status='Active',
+            source_metadata=self.source_metadata,
+            source_metadata_hash=self.hash_value,
+            source_metadata_key=self.key_value,
+            source_metadata_key_hash=self.key_value_hash,
+            source_metadata_extraction_date=timezone.now())
+        metadata_ledger.save()
+
+        source_data_dict = \
+            MetadataLedger.objects.values('source_metadata_key_hash',
+                                          'source_metadata').filter(
+                source_metadata_validation_status='',
+                record_lifecycle_status='Active').exclude(
+                source_metadata_extraction_date=None)
+
+        store_source_metadata_validation_status(
+            source_data_dict, self.key_value_hash, 'N',
+            'Inactive', self.source_metadata)
+
+        result_metadata = \
+            MetadataLedger.objects.values(
+                "source_metadata_validation_status",
+                "source_metadata_validation_date",
+                "metadata_record_inactivation_date").filter(
+                source_metadata_key_hash=self.key_value_hash).first()
+
+        self.assertEqual('N',
+                         result_metadata['source_metadata_validation_status'])
+        self.assertTrue(result_metadata['source_metadata_validation_date'])
+        self.assertTrue(result_metadata['metadata_record_inactivation_date'])
 
     # Test cases for transform_source_metadata
 
