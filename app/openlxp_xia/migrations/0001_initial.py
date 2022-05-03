@@ -90,7 +90,7 @@ class Migration(migrations.Migration):
                 ('created', model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False, verbose_name='created')),
                 ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False, verbose_name='modified')),
                 ('publisher', models.CharField(help_text='Enter the publisher name', max_length=200)),
-                ('source_metadata_schema', models.CharField(help_text='Enter the JKO schema file', max_length=200)),
+                ('source_metadata_schema', models.CharField(help_text='Enter the schema file', max_length=200)),
                 ('source_target_mapping', models.CharField(help_text='Enter the schema file to map target.', max_length=200)),
                 ('target_metadata_schema', models.CharField(help_text='Enter the target schema file to validate from.', max_length=200)),
                 ('source_file', models.FileField(help_text='Upload the source file', upload_to='')),
