@@ -198,10 +198,16 @@ def store_transformed_source_metadata(key_value, key_value_hash,
             supplemental_metadata_hash=supplemental_hash_value,
             supplemental_metadata_key=key_value,
             supplemental_metadata_key_hash=key_value_hash,
-            supplemental_metadata_transformation_date=timezone.now(),
-            supplemental_metadata_extraction_date=source_extraction_date,
             supplemental_metadata=supplemental_metadata,
             record_lifecycle_status='Active')
+
+        SupplementalLedger.objects.filter(
+            supplemental_metadata_hash=supplemental_hash_value,
+            supplemental_metadata_key=key_value,
+            supplemental_metadata_key_hash=key_value_hash,
+            record_lifecycle_status='Active').update(
+            supplemental_metadata_extraction_date=source_extraction_date,
+            supplemental_metadata_transformation_date=timezone.now())
 
 
 def transform_source_using_key(source_data_dict, target_mapping_dict,

@@ -17,7 +17,7 @@ class XIAConfiguration(TimeStampedModel):
     publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
     source_metadata_schema = models.CharField(max_length=200,
-                                              help_text='Enter the JKO '
+                                              help_text='Enter the '
                                                         'schema file')
     source_target_mapping = models.CharField(max_length=200,
                                              help_text='Enter the schema '

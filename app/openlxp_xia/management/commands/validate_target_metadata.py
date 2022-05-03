@@ -78,8 +78,10 @@ def store_target_metadata_validation_status(target_data_dict, key_value_hash,
             metadata_record_inactivation_date=timezone.now())
 
     SupplementalLedger.objects.filter(
-        supplemental_metadata_key_hash=key_value_hash).update(
-        supplemental_metadata_validation_date=timezone.now())
+        supplemental_metadata_key_hash=key_value_hash,
+        record_lifecycle_status="Active").update(
+        supplemental_metadata_validation_date=timezone.now(),
+        record_lifecycle_status=record_status_result)
 
 
 def validate_target_using_key(target_data_dict, required_column_list,
