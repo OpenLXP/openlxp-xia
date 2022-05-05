@@ -61,12 +61,12 @@ INSTALLED_APPS = [
 
     `Xis metadata api endpoint`: API endpoint for XIS where metadata will get stored.
 
-Example:  
+     Example:  
     `Xis metadata api endpoint`: http://localhost:8080/api/metadata/
 
     `Xis supplemental api endpoint`: API endpoint for XIS where supplemental metadata will get stored.
 
-Example: 
+    Example: 
 
     `Xis supplemental api endpoint`: http://openlxp-xis:8020/api/supplemental-data/
 
