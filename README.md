@@ -57,23 +57,23 @@ INSTALLED_APPS = [
 
 1. On the Admin page, log in with the admin credentials 
 
-3. `Add xis configuration`: Configure Experience Index Services (XIS): 
+2. `Add xis configuration`: Configure Experience Index Services (XIS): 
 
-`Xis metadata api endpoint`: API endpoint for XIS where metadata will get stored.
+    `Xis metadata api endpoint`: API endpoint for XIS where metadata will get stored.
 
 Example:  
-`Xis metadata api endpoint`: http://localhost:8080/api/metadata/
+    `Xis metadata api endpoint`: http://localhost:8080/api/metadata/
 
-`Xis supplemental api endpoint`: API endpoint for XIS where supplemental metadata will get stored.
+    `Xis supplemental api endpoint`: API endpoint for XIS where supplemental metadata will get stored.
 
 Example: 
 
-`Xis supplemental api endpoint`: http://openlxp-xis:8020/api/supplemental-data/
+    `Xis supplemental api endpoint`: http://openlxp-xis:8020/api/supplemental-data/
 
     (Note: Replace localhost with the XIS Host)
 
 
-4.  `Add xia configuration` : Configure Experience Index Agents(XIA):
+3.  `Add xia configuration` : Configure Experience Index Agents(XIA):
 
     `Publisher`: Agent Name
     
@@ -86,7 +86,7 @@ Example:
     (Note: Please make sure to upload schema files in the Experience Schema Server (XSS). In this case, upload schema files into the S3 bucket. )
 
 
-5. `Add metadata field overwrite`: Here, we can add new fields and their values or overwrite values for existing fields.
+4. `Add metadata field overwrite`: Here, we can add new fields and their values or overwrite values for existing fields.
 
     `Field name`: Add new or existing field Name
     
