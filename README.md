@@ -29,21 +29,6 @@ The OpenLXP-XIA implements five core workflows after extracting metadata from th
 
 To run this package along with your project, you will need to add the following environment variables to your .env file
 
-`DB_NAME` - Database Name
-
-`DB_USER` - Database User
-
-`DB_PASSWORD` - Database Password
-
-`DB_ROOT_PASSWORD` - Database root password
-
-`DB_HOST` - Enter datebase host
-
-`DJANGO_SUPERUSER_USERNAME` - Django admin user name
-
-`DJANGO_SUPERUSER_PASSWORD` - Django admin user password
-
-`DJANGO_SUPERUSER_EMAIL` -Django admin user email
 
 `BUCKET_NAME` - S3 Bucket name where schema files are stored
 
@@ -52,16 +37,6 @@ To run this package along with your project, you will need to add the following 
 `AWS_SECRET_ACCESS_KEY` - AWS access password
 
 `AWS_DEFAULT_REGION` - AWS region
-
-`SECRET_KEY_VAL` -Django Secret key to put in Settings.py
-
-`CERT_VOLUME` - Path for the where all the privacy certificates are stored
-
-`LOG_PATH` - Log path were all the logs will get stored
-
-`CELERY_BROKER_URL` -
-
-`CELERY_RESULT_BACKEND` -
 
 
 # Installation
