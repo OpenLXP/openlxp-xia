@@ -1,5 +1,8 @@
+from cgi import test
 import hashlib
+from importlib.metadata import metadata
 import logging
+import json
 
 import pandas as pd
 from django.core.management.base import BaseCommand
@@ -58,6 +61,7 @@ def get_metadata_fields_to_overwrite(metadata_df):
 def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
     """Overwrite & append metadata fields based on overwrite flag """
 
+    metadata_df = pd.DataFrame.from_dict(metadata_df, orient='index')
     # field should be overwritten and append
     if overwrite_flag:
         metadata_df[column] = value
@@ -130,8 +134,17 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
         k: '' if not v else v for k, v in
         source_metadata.items()}
 
+    print('src_data: ', source_metadata)
+ 
     # replacing fields to be overwritten or appended
-    metadata_df = pd.DataFrame(source_metadata, index=[0])
+    # metadata_df = pd.DataFrame(source_metadata)
+    # metadata_df = json.loads(json.dumps(source_metadata))
+    # print('type: ', type(metadata_df))
+    
+    metadata_df = pd.DataFrame.from_dict(source_metadata, orient='index')
+    print('testset', metadata_df)
+    print(type(metadata_df))
+     
     metadata = overwrite_metadata_field(metadata_df)
 
     # Replacing metadata schema with mapped values from source metadata

@@ -148,9 +148,9 @@ def dict_flatten(data_dict, required_column_list):
             flatten_dict_object(data_dict[element],
                                 element, flatten_dict, required_column_list)
         # If Json Field value is a list
-        elif isinstance(data_dict[element], list):
-            flatten_list_object(data_dict[element],
-                                element, flatten_dict, required_column_list)
+        # elif isinstance(data_dict[element], list):
+        #     flatten_list_object(data_dict[element],
+        #                         element, flatten_dict, required_column_list)
         # If Json Field value is a string
         else:
             update_flattened_object(data_dict[element],
