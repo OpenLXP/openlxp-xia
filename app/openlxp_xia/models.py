@@ -4,6 +4,7 @@ import os
 import uuid
 
 import boto3
+import requests
 from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
@@ -16,16 +17,17 @@ class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
     publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
+    xss_api = models.URLField(help_text='Enter the XSS API')
     source_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the '
-                                                        'schema file')
-    source_target_mapping = models.CharField(max_length=200,
-                                             help_text='Enter the schema '
-                                                       'file to map '
-                                                       'target.')
+                                                        'schema name/IRI')
+    # source_target_mapping = models.CharField(max_length=200,
+    #                                          help_text='Enter the schema '
+    #                                                    'file to map '
+    #                                                    'target.')
     target_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the target '
-                                                        'schema file to '
+                                                        'schema name/IRI to '
                                                         'validate from.')
     source_file = models.FileField(help_text='Upload the source '
                                              'file')
@@ -42,17 +44,29 @@ class XIAConfiguration(TimeStampedModel):
         # Deleting the corresponding existing value to overwrite
         MetadataFieldOverwrite.objects.all().delete()
         # get required columns list from schema files
-        s3 = boto3.resource('s3')
-        bucket_name = os.environ.get('BUCKET_NAME')
+        conf = self.xss_api
         # Read json file and store as a dictionary for processing
-        mapping_path = s3.Object(bucket_name, self.source_target_mapping)
-        mapping_content = mapping_path.get()['Body'].read().decode('utf-8')
-        mapping = json.loads(mapping_content)
+        # target_path = s3.Object(bucket_name, self.target_metadata_schema)
+        # target_content = target_path.get()['Body'].read().decode('utf-8')
+        # target = json.loads(target_content)
+        request_path = conf
+        if(self.target_metadata_schema.startswith('xss:')):
+            request_path += 'schemas/?iri=' + self.target_metadata_schema
+            conf += 'mappings/?targetIRI=' + self.target_metadata_schema
+        else:
+            request_path += 'schemas/?name=' + self.target_metadata_schema
+            conf += 'mappings/?targetName=' + self.target_metadata_schema
+        schema = requests.get(request_path, verify=True)
+        target = schema.json()['schema']
 
         # Read json file and store as a dictionary for processing
-        target_path = s3.Object(bucket_name, self.target_metadata_schema)
-        target_content = target_path.get()['Body'].read().decode('utf-8')
-        target = json.loads(target_content)
+        request_path = conf
+        if(self.source_metadata_schema.startswith('xss:')):
+            request_path += '&sourceIRI=' + self.source_metadata_schema
+        else:
+            request_path += '&sourceName=' + self.source_metadata_schema
+        schema = requests.get(request_path, verify=True)
+        mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
         for section in target:

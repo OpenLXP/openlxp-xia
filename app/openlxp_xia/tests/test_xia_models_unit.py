@@ -16,18 +16,17 @@ class ModelTests(TestCase):
         """Test that creating a new XIA Configuration entry is successful
         with defaults """
         source_metadata_schema = 'test_file.json'
-        source_target_mapping = 'test_file.json'
+        xss_api                = 'https://localhost'
         target_metadata_schema = 'test_file.json'
 
         xiaConfig = XIAConfiguration(
             source_metadata_schema=source_metadata_schema,
-            source_target_mapping=source_target_mapping,
+            xss_api=xss_api,
             target_metadata_schema=target_metadata_schema)
 
         self.assertEqual(xiaConfig.source_metadata_schema,
                          source_metadata_schema)
-        self.assertEqual(xiaConfig.source_target_mapping,
-                         source_target_mapping)
+        self.assertEqual(xiaConfig.xss_api, xss_api)
         self.assertEqual(xiaConfig.target_metadata_schema,
                          target_metadata_schema)
 
@@ -38,11 +37,11 @@ class ModelTests(TestCase):
             with self.assertRaises(ValidationError):
                 xiaConfig = \
                     XIAConfiguration(source_metadata_schema="example1.json",
-                                     source_target_mapping="example1.json",
+                                     xss_api="https://localhost",
                                      target_metadata_schema="example1.json")
                 xiaConfig2 = \
                     XIAConfiguration(source_metadata_schema="example2.json",
-                                     source_target_mapping="example2.json",
+                                     xss_api="https://localhost",
                                      target_metadata_schema="example2.json")
                 xiaConfig.save()
                 xiaConfig2.save()
