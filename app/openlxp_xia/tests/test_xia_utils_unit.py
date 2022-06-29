@@ -470,8 +470,10 @@ class UtilsTests(TestSetUp):
                 patch('openlxp_xia.management.utils.xss_client'
                       '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
-                target_metadata_schema='AGENT_p2881_target_metadata_schema.json',
-                source_metadata_schema='AGENT_p2881_target_metadata_schema.json'
+                target_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                source_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json'
             )
             xia_config_obj.return_value = xiaConfig
             read_obj.return_value = read_obj

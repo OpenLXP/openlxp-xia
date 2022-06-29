@@ -16,7 +16,7 @@ class ModelTests(TestCase):
         """Test that creating a new XIA Configuration entry is successful
         with defaults """
         source_metadata_schema = 'test_file.json'
-        xss_api                = 'https://localhost'
+        xss_api = 'https://localhost'
         target_metadata_schema = 'test_file.json'
 
         xiaConfig = XIAConfiguration(

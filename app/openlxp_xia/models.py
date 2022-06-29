@@ -1,9 +1,6 @@
-import json
 import logging
-import os
 import uuid
 
-import boto3
 import requests
 from django.db import models
 from django.forms import ValidationError
