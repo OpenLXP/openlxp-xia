@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import logging
 
@@ -8,7 +9,7 @@ from django.utils import timezone
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_target_metadata_key_value, is_date,
     replace_field_on_target_schema, required_recommended_logs,
-    type_cast_overwritten_values)
+    transform_to_target, traverse_dict, type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
@@ -42,7 +43,30 @@ def create_supplemental_metadata(metadata_columns, supplemental_metadata):
     return supplemental_metadata
 
 
-def get_metadata_fields_to_overwrite(metadata_df):
+def overwrite_append_metadata(metadata, column, value, overwrite_flag):
+    """Overwrite & append metadata fields based on overwrite flag """
+
+    key_list = column.split(".")
+    # loop till last key_value in list
+    for key_value in key_list[:-1]:
+        metadata = traverse_dict(metadata, key_value)
+
+    column = key_list[-1]
+    # field should be overwritten and append
+    if overwrite_flag:
+        metadata[column] = value
+    # skip field to be overwritten and append
+    else:
+        if column not in metadata:
+            metadata[column] = value
+        else:
+            if metadata[column] is None or metadata[column] == "":
+                metadata[column] = value
+
+
+def overwrite_metadata_field(metadata):
+    """Overwrite & append metadata fields with admin entered values """
+    # get metadata fields to be overwritten and appended and replace values
     """looping through fields to be overwrite or appended"""
     for each in MetadataFieldOverwrite.objects.all():
         column = each.field_name
@@ -50,76 +74,62 @@ def get_metadata_fields_to_overwrite(metadata_df):
         # checking and converting type of overwritten values
         value = type_cast_overwritten_values(each.field_type, each.field_value)
 
-        metadata_df = overwrite_append_metadata(metadata_df, column, value,
-                                                overwrite_flag)
-    return metadata_df
+        overwrite_append_metadata(metadata, column, value,
+                                  overwrite_flag)
+    return metadata
 
 
-def overwrite_append_metadata(metadata_df, column, value, overwrite_flag):
-    """Overwrite & append metadata fields based on overwrite flag """
-
-    # field should be overwritten and append
-    if overwrite_flag:
-        metadata_df[column] = value
-    # skip field to be overwritten and append
+def type_check_change(ind, item, expected_data_types, target_data_dict, index):
+    if item in expected_data_types:
+        # check for datetime datatype for field in metadata
+        if expected_data_types[item] == "datetime":
+            if not is_date(target_data_dict[index]):
+                # explicitly convert to string if incorrect
+                target_data_dict[index] = str(
+                    target_data_dict[index])
+                required_recommended_logs(ind, "datatype",
+                                          item)
+        # check for datatype for field in metadata(except datetime)
+        elif (not isinstance(target_data_dict[index],
+                             expected_data_types[item])):
+            # explicitly convert to string if incorrect
+            target_data_dict[index] = str(
+                target_data_dict[index])
+            required_recommended_logs(ind, "datatype",
+                                      item)
+    # explicitly convert to string if datatype not present
     else:
-        if column not in metadata_df.columns:
-            metadata_df[column] = value
-        else:
-            metadata_df.loc[metadata_df[column].isnull(), column] = value
-            metadata_df.loc[metadata_df[column] == "", column] = value
-    return metadata_df
-
-
-def overwrite_metadata_field(metadata_df):
-    """Overwrite & append metadata fields with admin entered values """
-    # get metadata fields to be overwritten and appended and replace values
-    metadata_df = get_metadata_fields_to_overwrite(metadata_df)
-    # return source metadata as dictionary
-
-    source_data_dict = metadata_df.to_dict(orient='index')
-    return source_data_dict[0]
+        target_data_dict[index] = str(
+            target_data_dict[index])
 
 
 def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
     """Function for type checking and explicit type conversion of metadata"""
-    for index in target_data_dict:
-        for section in target_data_dict[index]:
-            for key in target_data_dict[index][section]:
-                item = section + '.' + key
-                # check if item has a expected datatype from schema
-                if item in expected_data_types:
-                    # check for datetime datatype for field in metadata
-                    if expected_data_types[item] == "datetime":
-                        if not is_date(target_data_dict[index][section][key]):
-                            # explicitly convert to string if incorrect
-                            target_data_dict[index][section][key] = str(
-                                target_data_dict[index][section][key])
-                            required_recommended_logs(ind, "datatype",
-                                                      item)
-                    # check for datatype for field in metadata(except datetime)
-                    elif (not isinstance(target_data_dict[index][section][key],
-                                         expected_data_types[item])):
-                        # explicitly convert to string if incorrect
-                        target_data_dict[index][section][key] = str(
-                            target_data_dict[index][section][key])
-                        required_recommended_logs(ind, "datatype",
-                                                  item)
-                # explicitly convert to string if datatype not present
-                else:
-                    target_data_dict[index][section][key] = str(
-                        target_data_dict[index][section][key])
+
+    for section in target_data_dict:
+        for key in target_data_dict[section]:
+            item = section + '.' + key
+            # check if item has a expected datatype from schema
+            if isinstance(target_data_dict[section][key], list):
+                for index in range(len(target_data_dict[section][key])):
+                    item = section + '.' + key + '.' + str(index)
+                    type_check_change(ind, item, expected_data_types,
+                                      target_data_dict[section][key], index)
+            else:
+                type_check_change(ind, item, expected_data_types,
+                                  target_data_dict[section], key)
+
     return target_data_dict
 
 
-def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
+def create_target_metadata_dict(ind, target_mapping_replace, source_metadata,
                                 required_column_list, expected_data_types):
     """Function to replace and transform source data to target data for
     using target mapping schema"""
 
     # Create dataframe using target metadata schema
     target_schema = pd.DataFrame.from_dict(
-        target_mapping_dict,
+        target_mapping_replace,
         orient='index')
 
     # Flatten source data dictionary for replacing and transformation
@@ -129,33 +139,20 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
     source_metadata = {
         k: '' if not v else v for k, v in
         source_metadata.items()}
+    target_data_dict = transform_to_target(source_metadata,
+                                           target_mapping_replace)
 
     # replacing fields to be overwritten or appended
-    metadata_df = pd.DataFrame(source_metadata, index=[0])
-    metadata = overwrite_metadata_field(metadata_df)
-
-    # Replacing metadata schema with mapped values from source metadata
-
-    target_schema_replaced = target_schema.replace(metadata)
-
-    # Dropping index value and creating json object
-    target_data = target_schema_replaced.apply(lambda x: [x.dropna()],
-                                               axis=1).to_json()
-    # Creating dataframe from json object
-    target_data_df = pd.read_json(target_data)
-
-    # transforming target dataframe to dictionary object for replacing
-    # values in target with new value
-    target_data_dict = target_data_df.to_dict(orient='index')
+    overwrite_metadata_field(target_data_dict)
 
     # type checking and explicit type conversion of metadata
     target_data_dict = type_checking_target_metadata(ind, target_data_dict,
                                                      expected_data_types)
 
     # send values to be skipped while creating supplemental data
-
     supplemental_metadata = \
-        create_supplemental_metadata(target_schema.values.tolist(), metadata)
+        create_supplemental_metadata(target_schema.values.tolist(),
+                                     source_metadata)
 
     return target_data_dict, supplemental_metadata
 
@@ -168,8 +165,7 @@ def store_transformed_source_metadata(key_value, key_value_hash,
     source_extraction_date = MetadataLedger.objects.values_list(
         "source_metadata_extraction_date", flat=True).get(
         source_metadata_key_hash=key_value_hash,
-        record_lifecycle_status='Active',
-        source_metadata_transformation_date=None
+        record_lifecycle_status='Active'
     )
 
     data_for_transformation = MetadataLedger.objects.filter(
@@ -210,7 +206,7 @@ def store_transformed_source_metadata(key_value, key_value_hash,
             supplemental_metadata_transformation_date=timezone.now())
 
 
-def transform_source_using_key(source_data_dict, target_mapping_dict,
+def transform_source_using_key(source_data_dict, target_mapping,
                                required_column_list, expected_data_types):
     """Transforming source data using target metadata schema"""
     logger.info(
@@ -221,33 +217,30 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
     logger.info(
         "Overwrite & append metadata fields with admin entered values")
     for ind in range(len_source_metadata):
-        for table_column_name in source_data_dict[ind]:
-            target_data_dict, supplemental_metadata = \
-                create_target_metadata_dict(ind, target_mapping_dict,
-                                            source_data_dict
-                                            [ind]
-                                            [table_column_name],
-                                            required_column_list,
-                                            expected_data_types
-                                            )
-            # Looping through target values in dictionary
-            for ind1 in target_data_dict:
-                # Replacing values in field referring target schema
-                replace_field_on_target_schema(ind1,
-                                               target_data_dict)
-                # Key creation for target metadata
-                key = get_target_metadata_key_value(target_data_dict[ind1])
+        target_mapping_metadata = copy.deepcopy(target_mapping)
+        target_metadata, supplemental_metadata = \
+            create_target_metadata_dict(ind, target_mapping_metadata,
+                                        source_data_dict
+                                        [ind]
+                                        ['source_metadata'],
+                                        required_column_list,
+                                        expected_data_types
+                                        )
+        # Replacing values in field referring target schema
+        replace_field_on_target_schema(ind,
+                                       target_metadata)
+        # Key creation for target metadata
+        key = get_target_metadata_key_value(target_metadata)
 
-                hash_value = hashlib.sha512(
-                    str(target_data_dict[ind1]).encode(
-                        'utf-8')).hexdigest()
-                store_transformed_source_metadata(key['key_value'],
-                                                  key[
-                                                      'key_value_hash'],
-                                                  target_data_dict[
-                                                      ind1],
-                                                  hash_value,
-                                                  supplemental_metadata)
+        hash_value = hashlib.sha512(
+            str(target_metadata).encode(
+                'utf-8')).hexdigest()
+        store_transformed_source_metadata(key['key_value'],
+                                          key[
+                                              'key_value_hash'],
+                                          target_metadata,
+                                          hash_value,
+                                          supplemental_metadata)
 
 
 class Command(BaseCommand):

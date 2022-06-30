@@ -36,29 +36,28 @@ def replace_field_on_target_schema(ind1,
     }
     for target_section_name in target_name:
         for target_field_name in target_name[target_section_name]:
-            if target_data_dict[ind1][target_section_name]. \
+            if target_data_dict[target_section_name]. \
                     get(target_field_name):
 
-                if target_data_dict[ind1][target_section_name][
+                if target_data_dict[target_section_name][
                     target_field_name] == 'y' or \
-                        target_data_dict[ind1][
+                        target_data_dict[
                             target_section_name][
                             target_field_name] == 'Y':
-                    target_data_dict[ind1][
+                    target_data_dict[
                         target_section_name][
                         target_field_name] = 'Mandatory'
                 else:
-                    if target_data_dict[ind1][
+                    if target_data_dict[
                         target_section_name][
                         target_field_name] == 'n' or \
-                            target_data_dict[ind1][
+                            target_data_dict[
                                 target_section_name][
                                 target_field_name] == 'N':
-                        target_data_dict[ind1][
+                        target_data_dict[
                             target_section_name][
                             target_field_name] = 'Non - ' \
                                                  'Mandatory'
-
 
 def get_target_metadata_key_value(data_dict):
     """Function to create key value for target metadata """
@@ -77,7 +76,6 @@ def get_target_metadata_key_value(data_dict):
                 logger.info('Field name ' + item_name + ' is missing for '
                                                         'key creation')
             field_values.append(data_dict[item_section].get(item_name))
-
     # Key value creation for source metadata
     key_value = '_'.join(field_values)
 
@@ -135,6 +133,13 @@ def is_date(string, fuzzy=False):
         return False
 
 
+def traverse_dict(metadata, key_val):
+    """Function to traverse through dict with list of keys """
+    if key_val not in metadata:
+        metadata[key_val] = {}
+    return metadata[key_val]
+
+
 def dict_flatten(data_dict, required_column_list):
     """Function to flatten/normalize  data dictionary"""
 
@@ -180,7 +185,7 @@ def flatten_list_object(list_obj, prefix, flatten_dict, required_column_list):
                                 required_column_list)
 
         else:
-            update_flattened_object(list_obj[i], prefix, flatten_dict)
+            update_flattened_object(list_obj, prefix, flatten_dict)
 
         # looping through required column names
         for required_prefix in required_column_list:
@@ -225,10 +230,10 @@ def flatten_dict_object(dict_obj, prefix, flatten_dict, required_column_list):
                                     element, flatten_dict)
 
 
-def update_flattened_object(str_obj, prefix, flatten_dict):
+def update_flattened_object(obj, prefix, flatten_dict):
     """function to update flattened object to dict variable"""
 
-    flatten_dict.update({prefix: str_obj})
+    flatten_dict.update({prefix: obj})
 
 
 def convert_date_to_isoformat(date):
@@ -281,3 +286,25 @@ def type_cast_overwritten_values(field_type, field_value):
         return None
 
     return value
+
+
+def assign_target_value_str_list(source_metadata, target_mapping, element):
+    """Function to replace source key with source value in target metadata"""
+    if target_mapping[element] in source_metadata:
+        target_mapping[element] = \
+            source_metadata[target_mapping[element]]
+    else:
+        target_mapping[element] = None
+
+
+def transform_to_target(source_metadata, target_mapping):
+    """Function to transform source to target"""
+    for element in target_mapping:
+        if isinstance(target_mapping[element], dict):
+            transform_to_target(source_metadata, target_mapping[element])
+        elif isinstance(target_mapping[element], str) or \
+                isinstance(target_mapping[element], list):
+            assign_target_value_str_list(
+                source_metadata, target_mapping, element)
+
+    return target_mapping

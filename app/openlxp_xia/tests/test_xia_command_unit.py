@@ -17,8 +17,8 @@ from openlxp_xia.management.commands.transform_source_metadata import (
     overwrite_append_metadata, overwrite_metadata_field,
     transform_source_using_key, type_checking_target_metadata)
 from openlxp_xia.management.commands.validate_source_metadata import (
-    get_source_metadata_for_validation, validate_source_using_key,
-    store_source_metadata_validation_status)
+    get_source_metadata_for_validation,
+    store_source_metadata_validation_status, validate_source_using_key)
 from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, update_previous_instance_in_metadata,
     validate_target_using_key)
