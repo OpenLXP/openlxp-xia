@@ -114,14 +114,16 @@ def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
     for section in target_data_dict:
         for key in target_data_dict[section]:
             item = section + '.' + key
-            # check if item has a expected datatype from schema
-            if isinstance(target_data_dict[section][key], list):
-                for index in range(len(target_data_dict[section][key])):
+            if target_data_dict[section][key]:
+                # check if item has a expected datatype from schema
+                if isinstance(target_data_dict[section][key], list):
+                    for index in range(len(target_data_dict[section][key])):
+                        type_check_change(ind, item, expected_data_types,
+                                          target_data_dict[section][key],
+                                          index)
+                else:
                     type_check_change(ind, item, expected_data_types,
-                                      target_data_dict[section][key], index)
-            else:
-                type_check_change(ind, item, expected_data_types,
-                                  target_data_dict[section], key)
+                                      target_data_dict[section], key)
 
     return target_data_dict
 
