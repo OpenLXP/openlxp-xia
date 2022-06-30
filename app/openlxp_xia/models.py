@@ -18,10 +18,6 @@ class XIAConfiguration(TimeStampedModel):
     source_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the '
                                                         'schema name/IRI')
-    # source_target_mapping = models.CharField(max_length=200,
-    #                                          help_text='Enter the schema '
-    #                                                    'file to map '
-    #                                                    'target.')
     target_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the target '
                                                         'schema name/IRI to '
@@ -43,9 +39,6 @@ class XIAConfiguration(TimeStampedModel):
         # get required columns list from schema files
         conf = self.xss_api
         # Read json file and store as a dictionary for processing
-        # target_path = s3.Object(bucket_name, self.target_metadata_schema)
-        # target_content = target_path.get()['Body'].read().decode('utf-8')
-        # target = json.loads(target_content)
         request_path = conf
         if(self.target_metadata_schema.startswith('xss:')):
             request_path += 'schemas/?iri=' + self.target_metadata_schema
