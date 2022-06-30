@@ -81,6 +81,11 @@ def overwrite_metadata_field(metadata):
 
 def type_check_change(ind, item, expected_data_types, target_data_dict, index):
     if item in expected_data_types:
+        # data path assignment if type check is for a list or an element
+        if isinstance(index, int):
+            data_path = item + "." + str(index)
+        else:
+            data_path = item
         # check for datetime datatype for field in metadata
         if expected_data_types[item] == "datetime":
             if not is_date(target_data_dict[index]):
@@ -88,7 +93,7 @@ def type_check_change(ind, item, expected_data_types, target_data_dict, index):
                 target_data_dict[index] = str(
                     target_data_dict[index])
                 required_recommended_logs(ind, "datatype",
-                                          item)
+                                          data_path)
         # check for datatype for field in metadata(except datetime)
         elif (not isinstance(target_data_dict[index],
                              expected_data_types[item])):
@@ -96,7 +101,7 @@ def type_check_change(ind, item, expected_data_types, target_data_dict, index):
             target_data_dict[index] = str(
                 target_data_dict[index])
             required_recommended_logs(ind, "datatype",
-                                      item)
+                                      data_path)
     # explicitly convert to string if datatype not present
     else:
         target_data_dict[index] = str(
@@ -112,7 +117,6 @@ def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
             # check if item has a expected datatype from schema
             if isinstance(target_data_dict[section][key], list):
                 for index in range(len(target_data_dict[section][key])):
-                    item = section + '.' + key + '.' + str(index)
                     type_check_change(ind, item, expected_data_types,
                                       target_data_dict[section][key], index)
             else:
@@ -163,10 +167,10 @@ def store_transformed_source_metadata(key_value, key_value_hash,
     """Storing target metadata in MetadataLedger"""
 
     source_extraction_date = MetadataLedger.objects.values_list(
-        "source_metadata_extraction_date", flat=True).get(
+        "source_metadata_extraction_date", flat=True).filter(
         source_metadata_key_hash=key_value_hash,
         record_lifecycle_status='Active'
-    )
+    ).first()
 
     data_for_transformation = MetadataLedger.objects.filter(
         source_metadata_key_hash=key_value_hash,
