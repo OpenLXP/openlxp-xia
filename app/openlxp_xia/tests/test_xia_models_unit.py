@@ -46,6 +46,23 @@ class ModelTests(TestCase):
                 xiaConfig.save()
                 xiaConfig2.save()
 
+    def test_xia_field_overwrite(self):
+        """Test that field_overwrite in an XIA Configuration generates
+        MetadataFieldOverwrite objects """
+        with patch("openlxp_xia.models.requests") as mock:
+            target_schema = {"schema": {
+                "start": {"test": {"use": "Required"}}}}
+            transform_schema = {"schema_mapping": {
+                "start": {"test": "start.test"}}}
+            mock.get.return_value = mock
+            mock.json.side_effect = [target_schema, transform_schema]
+            xiaConfig = \
+                XIAConfiguration(source_metadata_schema="example1.json",
+                                 xss_api="https://localhost",
+                                 target_metadata_schema="example1.json")
+            xiaConfig.save()
+            self.assertEqual(MetadataFieldOverwrite.objects.count(), 1)
+
     def test_create_xis_configuration(self):
         """Test that creating a new XIS Configuration entry is successful
         with defaults """
@@ -60,6 +77,23 @@ class ModelTests(TestCase):
                          xis_supplemental_api_endpoint)
         self.assertEqual(xisConfig.xis_supplemental_api_endpoint,
                          xis_supplemental_api_endpoint)
+
+    def test_create_two_xis_configuration(self):
+        """Test that creating trying to create more than one XIS Configuration
+        throws a ValidationError """
+        xis_metadata_api_endpoint = 'http://localhost:8000/api/metadata/'
+        xis_supplemental_api_endpoint = 'http://localhost:8000/api/supplement/'
+
+        xisConfig = XISConfiguration(
+            xis_metadata_api_endpoint=xis_metadata_api_endpoint,
+            xis_supplemental_api_endpoint=xis_supplemental_api_endpoint)
+        xisConfig2 = XISConfiguration(
+            xis_metadata_api_endpoint=xis_metadata_api_endpoint,
+            xis_supplemental_api_endpoint=xis_supplemental_api_endpoint)
+
+        with self.assertRaises(ValidationError):
+            xisConfig.save()
+            xisConfig2.save()
 
     def test_metadata_ledger(self):
         """Test for a new Metadata_Ledger entry is successful with defaults"""
