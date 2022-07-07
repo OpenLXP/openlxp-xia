@@ -59,6 +59,7 @@ def replace_field_on_target_schema(ind1,
                             target_field_name] = 'Non - ' \
                                                  'Mandatory'
 
+
 def get_target_metadata_key_value(data_dict):
     """Function to create key value for target metadata """
     field = {
@@ -134,7 +135,7 @@ def is_date(string, fuzzy=False):
 
 
 def traverse_dict(metadata, key_val):
-    """Function to traverse through dict with list of keys """
+    """Function to traverse through dict"""
     if key_val not in metadata:
         metadata[key_val] = {}
     return metadata[key_val]

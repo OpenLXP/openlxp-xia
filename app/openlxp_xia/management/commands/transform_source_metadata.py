@@ -67,7 +67,6 @@ def overwrite_append_metadata(metadata, column, value, overwrite_flag):
 def overwrite_metadata_field(metadata):
     """Overwrite & append metadata fields with admin entered values """
     # get metadata fields to be overwritten and appended and replace values
-    """looping through fields to be overwrite or appended"""
     for each in MetadataFieldOverwrite.objects.all():
         column = each.field_name
         overwrite_flag = each.overwrite
@@ -113,7 +112,7 @@ def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
 
     for section in target_data_dict:
         for key in target_data_dict[section]:
-            item = section + '.' + key
+            item = str(section) + '.' + str(key)
             if target_data_dict[section][key]:
                 # check if item has a expected datatype from schema
                 if isinstance(target_data_dict[section][key], list):

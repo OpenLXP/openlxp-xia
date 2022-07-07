@@ -1,3 +1,4 @@
+import copy
 import logging
 from unittest.mock import patch
 
@@ -13,18 +14,17 @@ from openlxp_xia.management.commands.load_target_metadata import (
     rename_metadata_ledger_fields)
 from openlxp_xia.management.commands.transform_source_metadata import (
     create_supplemental_metadata, create_target_metadata_dict,
-    get_metadata_fields_to_overwrite, get_source_metadata_for_transformation,
-    overwrite_append_metadata, overwrite_metadata_field,
-    transform_source_using_key, type_checking_target_metadata)
+    get_source_metadata_for_transformation, overwrite_append_metadata,
+    overwrite_metadata_field, transform_source_using_key, type_check_change,
+    type_checking_target_metadata)
 from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation,
     store_source_metadata_validation_status, validate_source_using_key)
 from openlxp_xia.management.commands.validate_target_metadata import (
     get_target_metadata_for_validation, update_previous_instance_in_metadata,
     validate_target_using_key)
-from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
-                                SupplementalLedger, XIAConfiguration,
-                                XISConfiguration)
+from openlxp_xia.models import (MetadataLedger, SupplementalLedger,
+                                XIAConfiguration, XISConfiguration)
 
 from .test_setup import TestSetUp
 
@@ -158,11 +158,13 @@ class CommandTests(TestSetUp):
     def test_type_checking_target_metadata(self):
         """"Test function for type checking and explicit type conversion of
         metadata """
-        target_metadata = {
-            0: self.target_metadata}
-        target_metadata = type_checking_target_metadata(1, target_metadata,
-                                                        self.expected_datatype)
-        self.assertIsInstance(target_metadata[0]['General_Information'][
+
+        key_check = copy.deepcopy(self.target_metadata)
+
+        key_check = \
+            type_checking_target_metadata(1, key_check,
+                                          self.expected_datatype)
+        self.assertIsInstance(key_check['General_Information'][
                                   "EndDate"], str)
 
     def test_get_source_metadata_for_transformation(self):
@@ -202,10 +204,11 @@ class CommandTests(TestSetUp):
             result_data_dict, supplemental_data = create_target_metadata_dict(
                 1, self.source_target_mapping, self.source_metadata,
                 self.test_required_column_names, self.expected_datatype)
-            self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
+
+            self.assertEqual(result_data_dict['Course'].get('CourseCode'),
                              expected_data_dict[0]['Course'].get('CourseCode'))
             self.assertEqual(
-                result_data_dict[0]['Course'].get('CourseProviderName'),
+                result_data_dict['Course'].get('CourseProviderName'),
                 expected_data_dict[0]['Course'].get('CourseProviderName'))
 
     def test_transform_source_using_key_more_zero(self):
@@ -236,8 +239,8 @@ class CommandTests(TestSetUp):
     def test_transform_source_using_key_more_than_one(self):
         """Test for transforming source data using target metadata schema for
         more than one row"""
-        data = [{0: self.source_metadata},
-                {1: self.source_metadata}]
+        data = [{"source_metadata": self.source_metadata},
+                {"source_metadata": self.source_metadata}]
         with patch('openlxp_xia.management.utils.xia_internal'
                    '.get_target_metadata_key_value',
                    return_value=None), \
@@ -264,38 +267,26 @@ class CommandTests(TestSetUp):
         return metadata in dictionary format """
 
         with patch('openlxp_xia.management.commands.transform_source_metadata'
-                   '.get_metadata_fields_to_overwrite') as mock_get_overwrite:
-            mock_get_overwrite.return_value = self.metadata_df
+                   '.overwrite_append_metadata') as mock_get_overwrite:
+            mock_get_overwrite.return_value = self.target_metadata
 
-            return_val = overwrite_metadata_field(self.metadata_df)
+            return_val = overwrite_metadata_field(self.target_metadata)
             self.assertIsInstance(return_val, dict)
 
-    def test_get_metadata_fields_to_overwrite(self):
-        """Test for looping through fields to be overwrite or appended"""
-        with patch('openlxp_xia.management.commands.'
-                   'transform_source_metadata.MetadataFieldOverwrite.'
-                   'objects') as mock_field, \
-                patch('openlxp_xia.management.commands.'
-                      'transform_source_metadata.'
-                      'overwrite_append_metadata') as mock_overwrite_fun:
-            config = \
-                [MetadataFieldOverwrite(field_name='column1', overwrite=True,
-                                        field_value='value1'),
-                 MetadataFieldOverwrite(field_name='column2', overwrite=False,
-                                        field_value='value2')]
-            mock_field.all.return_value = config
-            mock_overwrite_fun.return_value = self.metadata_df
-
-            get_metadata_fields_to_overwrite(self.metadata_df)
-            self.assertEqual(mock_overwrite_fun.call_count, 2)
+    def test_type_check_change(self):
+        item = 'General_Information.EndDate'
+        target_metadata = self.target_metadata["General_Information"]
+        type_check_change(1, item, self.expected_datatype,
+                          target_metadata, 'EndDate')
+        self.assertIsInstance(target_metadata[
+                                  "EndDate"], str)
 
     def test_overwrite_append_metadata(self):
         """test Overwrite & append metadata fields based on overwrite flag """
-        return_val = \
-            overwrite_append_metadata(self.metadata_df, 'column_1', 'value_1',
-                                      True)
+        overwrite_append_metadata(self.target_metadata, 'column_1',
+                                  'value_1', True)
 
-        self.assertEqual(return_val['column_1'][0], 'value_1')
+        self.assertEqual(self.target_metadata['column_1'], 'value_1')
 
     # Test cases for validate_target_metadata
 
@@ -378,7 +369,7 @@ class CommandTests(TestSetUp):
 
         updated_value = MetadataLedger.objects. \
             get(target_metadata_key_hash=self.target_key_value_hash)
-        self.assertEqual(updated_value.record_lifecycle_status, 'Inactive')
+        self.assertEqual(updated_value.record_lifecycle_status, 'Active')
 
     # Test cases for load_target_metadata
 

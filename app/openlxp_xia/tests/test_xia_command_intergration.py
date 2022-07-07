@@ -167,7 +167,8 @@ class CommandIntegration(TestSetUp):
             source_metadata_validation_date=None)
 
         test_metadata_overwrite = \
-            MetadataFieldOverwrite(field_name='test_name', field_type='char',
+            MetadataFieldOverwrite(field_name='Course.test_name',
+                                   field_type='char',
                                    field_value='new_value', overwrite=True)
         test_metadata_overwrite.save()
         transform_source_using_key(test_data_dict, self.source_target_mapping,
@@ -222,6 +223,7 @@ class CommandIntegration(TestSetUp):
             source_metadata_key=self.key_value,
             source_metadata_validation_date=timezone.now(),
             source_metadata_extraction_date=timezone.now())
+
         metadata_ledger.save()
 
         test_data_dict = MetadataLedger.objects.values(
@@ -389,9 +391,12 @@ class CommandIntegration(TestSetUp):
         metadata_ledger.save()
 
         supplemental_ledger = SupplementalLedger(
-            supplemental_metadata={"key": "value"},
-            supplemental_metadata_key_hash=self.key_value_hash)
+            supplemental_metadata={"key1": "value1"},
+            supplemental_metadata_key_hash=self.key_value_hash,
+            record_lifecycle_status="Active"
+        )
         supplemental_ledger.save()
+
         store_target_metadata_validation_status(MetadataLedger.objects.
                                                 values('target_metadata'),
                                                 self.key_value_hash,
@@ -427,8 +432,10 @@ class CommandIntegration(TestSetUp):
         metadata_ledger.save()
         supplemental_ledger = SupplementalLedger(
             supplemental_metadata={"key": "value"},
-            supplemental_metadata_key_hash=self.key_value_hash)
+            supplemental_metadata_key_hash=self.key_value_hash,
+            record_lifecycle_status="Active")
         supplemental_ledger.save()
+
         store_target_metadata_validation_status(MetadataLedger.objects.
                                                 values('target_metadata'),
                                                 self.key_value_hash,

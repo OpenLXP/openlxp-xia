@@ -1,6 +1,6 @@
+import hashlib
 from uuid import UUID
 
-import pandas as pd
 from django.test import TestCase
 
 
@@ -24,8 +24,10 @@ class TestSetUp(TestCase):
             "supplemental_data": "sample1"
         }
         self.key_value = "TestData 123_AGENT"
-        self.key_value_hash = "d2a7f8cc5d5484a4dde099c6a21a903a"
-        self.hash_value = "f454114ba41034e14df2a8f3c14a047d"
+        self.key_value_hash = hashlib.sha512(self.key_value.encode('utf-8'))\
+            .hexdigest()
+        self.hash_value = hashlib.sha512(str(self.source_metadata).
+                                         encode('utf-8')).hexdigest()
 
         self.target_metadata = {
             "Course": {
@@ -68,8 +70,12 @@ class TestSetUp(TestCase):
             "supplemental_data": "sample1"
         }
         self.key_value_overwrite = "TestData 234_AGENT"
-        self.key_value_hash_overwrite = "5a9a682afe965fb2aa1f9f50e5148ebd"
-        self.hash_value_overwrite = "81b86d6ac3b4d8561bd26f11d8feea9a"
+        self.key_value_hash_overwrite = \
+            hashlib.sha512(self.key_value_overwrite.encode('utf-8'))\
+            .hexdigest()
+        self.hash_value_overwrite = \
+            hashlib.sha512(str(self.source_metadata_overwrite).
+                           encode('utf-8')).hexdigest()
 
         self.target_metadata_overwrite = {
             "Course": {
@@ -463,8 +469,8 @@ class TestSetUp(TestCase):
             "supplemental_data2": "sample2"
         }
 
-        self.metadata_df = pd.DataFrame.from_dict(
-            {0: {1: self.source_metadata}}, orient='index')
+        # self.metadata_df = pd.DataFrame.from_dict(
+        #     {0: {1: self.source_metadata}}, orient='index')
 
         return super().setUp()
 

@@ -6,9 +6,10 @@ from ddt import data, ddt, unpack
 from django.test import tag
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, flatten_dict_object, flatten_list_object, get_key_dict,
-    get_publisher_detail, get_target_metadata_key_value, is_date,
-    replace_field_on_target_schema, type_cast_overwritten_values,
+    assign_target_value_str_list, dict_flatten, flatten_dict_object,
+    flatten_list_object, get_key_dict, get_publisher_detail,
+    get_target_metadata_key_value, is_date, replace_field_on_target_schema,
+    transform_to_target, traverse_dict, type_cast_overwritten_values,
     update_flattened_object)
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
@@ -52,26 +53,24 @@ class UtilsTests(TestSetUp):
 
     def test_replace_field_on_target_schema(self):
         """test to check if values under educational context are replaced"""
-        test_dict0 = {'0': {
+        test_dict0 = {
             "Course": {
                 "EducationalContext": "Y"
             }
         }
-        }
 
-        test_dict1 = {'1': {
+        test_dict1 = {
             "Course": {
                 "EducationalContext": "n"
             }
         }
-        }
 
         replace_field_on_target_schema('0', test_dict0)
-        self.assertEqual(test_dict0['0']['Course']['EducationalContext'],
+        self.assertEqual(test_dict0['Course']['EducationalContext'],
                          'Mandatory')
 
         replace_field_on_target_schema('1', test_dict1)
-        self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
+        self.assertEqual(test_dict1['Course']['EducationalContext'],
                          'Non - Mandatory')
 
     @data((1, False), ("1990-12-1", True), ("Monday at 12:01am", True))
@@ -382,6 +381,35 @@ class UtilsTests(TestSetUp):
         field_value = second_value
         values = type_cast_overwritten_values(field_type, field_value)
         self.assertNotIsInstance(values, int)
+
+    @data("Course", "test")
+    def test_traverse_dict(self, value):
+        """Test Function to traverse through dict"""
+        return_val = traverse_dict(self.target_metadata, value)
+
+        self.assertIsInstance(return_val, dict)
+
+    def test_assign_target_value_str_list(self):
+        """Test Function to replace source key with
+        source value in target metadata"""
+        assign_target_value_str_list(self.source_metadata,
+                                     self.source_target_mapping["Course"],
+                                     "CourseProviderName")
+        self.assertEqual(
+            self.source_target_mapping["Course"]["CourseProviderName"],
+            self.source_metadata["SOURCESYSTEM"])
+
+    def test_transform_to_target(self):
+        """Test Function to transform source to target"""
+        with patch('openlxp_xia.management.'
+                   'utils.xia_internal.'
+                   'assign_target_value_str_list') as mock_assign_target_value:
+            transform_to_target(self.source_metadata,
+                                self.source_target_mapping)
+
+            self.assertEqual(mock_assign_target_value.call_count,
+                             sum(len(v) for v in
+                                 self.source_target_mapping.values()))
 
     # Test cases for XIS_CLIENT
 
