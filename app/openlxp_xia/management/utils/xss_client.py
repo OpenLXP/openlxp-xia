@@ -22,7 +22,7 @@ def read_json_data(source_schema_ref, target_schema_ref=None):
         if(target_schema_ref.startswith('xss:')):
             request_path += 'mappings/?targetIRI=' + target_schema_ref
         else:
-            request_path += '?mappings/targetName=' + target_schema_ref
+            request_path += 'mappings/?targetName=' + target_schema_ref
         if(source_schema_ref.startswith('xss:')):
             request_path += '&sourceIRI=' + source_schema_ref
         else:
