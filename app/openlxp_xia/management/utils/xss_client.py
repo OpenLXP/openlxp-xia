@@ -18,22 +18,25 @@ def read_json_data(source_schema_ref, target_schema_ref=None):
     """get schema from xss and ingest as dictionary values"""
     xss_host = xss_get()
     request_path = xss_host
-    if(target_schema_ref is not None):
-        if(target_schema_ref.startswith('xss:')):
+    if target_schema_ref is not None:
+        if target_schema_ref.startswith('xss:'):
             request_path += 'mappings/?targetIRI=' + target_schema_ref
         else:
-            request_path += '?mappings/targetName=' + target_schema_ref
-        if(source_schema_ref.startswith('xss:')):
+            request_path += 'mappings/?targetName=' + target_schema_ref
+        if source_schema_ref.startswith('xss:'):
             request_path += '&sourceIRI=' + source_schema_ref
         else:
             request_path += '&sourceName=' + source_schema_ref
+        schema = requests.get(request_path, verify=True)
+        json_content = schema.json()['schema_mapping']
     else:
-        if(source_schema_ref.startswith('xss:')):
+        if source_schema_ref.startswith('xss:'):
             request_path += 'schemas/?iri=' + source_schema_ref
         else:
             request_path += 'schemas/?name=' + source_schema_ref
-    schema = requests.get(request_path, verify=True)
-    json_content = schema.json()['schema']
+        schema = requests.get(request_path, verify=True)
+        json_content = schema.json()['schema']
+
     return json_content
 
 

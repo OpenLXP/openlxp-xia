@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, is_date, required_recommended_logs)
+    dict_flatten, required_recommended_logs, type_check_change)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
     get_target_validation_schema)
@@ -128,16 +128,15 @@ def validate_target_using_key(target_data_dict, required_column_list,
         for item in flattened_source_data:
             # check if datatype has been assigned to field
             if item in expected_data_types:
-                # type checking for datetime datatype fields
-                if expected_data_types[item] == "datetime":
-                    if not is_date(flattened_source_data[item]):
-                        required_recommended_logs(ind, "datatype",
-                                                  item)
-                # type checking for datatype fields(except datetime)
-                elif (not isinstance(flattened_source_data[item],
-                                     expected_data_types[item])):
-                    required_recommended_logs(ind, "datatype",
-                                              item)
+                #
+                if isinstance(flattened_source_data[item], list):
+                    for index in range(len(flattened_source_data[item])):
+                        type_check_change(ind, item, expected_data_types,
+                                          flattened_source_data[item],
+                                          index)
+                else:
+                    type_check_change(ind, item, expected_data_types,
+                                      flattened_source_data, item)
 
         # assigning key hash value for source metadata
         key_value_hash = target_data_dict[ind]['target_metadata_key_hash']

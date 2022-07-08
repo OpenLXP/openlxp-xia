@@ -40,7 +40,7 @@ class XIAConfiguration(TimeStampedModel):
         conf = self.xss_api
         # Read json file and store as a dictionary for processing
         request_path = conf
-        if(self.target_metadata_schema.startswith('xss:')):
+        if self.target_metadata_schema.startswith('xss:'):
             request_path += 'schemas/?iri=' + self.target_metadata_schema
             conf += 'mappings/?targetIRI=' + self.target_metadata_schema
         else:
@@ -51,41 +51,32 @@ class XIAConfiguration(TimeStampedModel):
 
         # Read json file and store as a dictionary for processing
         request_path = conf
-        if(self.source_metadata_schema.startswith('xss:')):
+        if self.source_metadata_schema.startswith('xss:'):
             request_path += '&sourceIRI=' + self.source_metadata_schema
-        else:
-            request_path += '&sourceName=' + self.source_metadata_schema
-        schema = requests.get(request_path, verify=True)
-        mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
         for section in target:
             for key, val in target[section].items():
                 if "use" in val:
                     if val["use"] == 'Required':
-                        if section in mapping and key in mapping[section]:
-                            metadata_field_overwrite = MetadataFieldOverwrite()
-                            metadata_field_overwrite.field_name = \
-                                mapping[section][key]
-                            # assigning default value for datatype field
-                            # for metadata
-                            metadata_field_overwrite.field_type = "str"
-                            # assigning datatype field from schema
-                            if "data_type" in val:
-                                metadata_field_overwrite. \
-                                    field_type = val["data_type"]
-                            # logging if datatype for field not present in
-                            # schema
-                            else:
-                                logger.warning("Datatype for required value " +
-                                               section + "." + key +
-                                               " not found in schema mapping")
-                            metadata_field_overwrite.save()
-                        # logging is mapping for metadata not present in schema
+                        # if section in mapping and key in mapping[section]:
+                        metadata_field_overwrite = MetadataFieldOverwrite()
+                        metadata_field_overwrite.field_name = \
+                            str(section) + "." + str(key)
+                        # assigning default value for datatype field
+                        # for metadata
+                        metadata_field_overwrite.field_type = "str"
+                        # assigning datatype field from schema
+                        if "data_type" in val:
+                            metadata_field_overwrite. \
+                                field_type = val["data_type"]
+                        # logging if datatype for field not present in
+                        # schema
                         else:
-                            logger.error("Mapping for required value " +
-                                         section + "." + key +
-                                         " not found in schema mapping")
+                            logger.warning("Datatype for required value " +
+                                           section + "." + key +
+                                           " not found in schema mapping")
+                        metadata_field_overwrite.save()
 
     def save(self, *args, **kwargs):
         # Retrieve list of field required to be overwritten

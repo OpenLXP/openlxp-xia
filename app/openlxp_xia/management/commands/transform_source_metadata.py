@@ -7,9 +7,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, get_target_metadata_key_value, is_date,
-    replace_field_on_target_schema, required_recommended_logs,
-    transform_to_target, traverse_dict, type_cast_overwritten_values)
+    dict_flatten, get_target_metadata_key_value,
+    replace_field_on_target_schema, transform_to_target, traverse_dict,
+    type_cast_overwritten_values, type_check_change)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
@@ -76,35 +76,6 @@ def overwrite_metadata_field(metadata):
         overwrite_append_metadata(metadata, column, value,
                                   overwrite_flag)
     return metadata
-
-
-def type_check_change(ind, item, expected_data_types, target_data_dict, index):
-    if item in expected_data_types:
-        # data path assignment if type check is for a list or an element
-        if isinstance(index, int):
-            data_path = item + "." + str(index)
-        else:
-            data_path = item
-        # check for datetime datatype for field in metadata
-        if expected_data_types[item] == "datetime":
-            if not is_date(target_data_dict[index]):
-                # explicitly convert to string if incorrect
-                target_data_dict[index] = str(
-                    target_data_dict[index])
-                required_recommended_logs(ind, "datatype",
-                                          data_path)
-        # check for datatype for field in metadata(except datetime)
-        elif (not isinstance(target_data_dict[index],
-                             expected_data_types[item])):
-            # explicitly convert to string if incorrect
-            target_data_dict[index] = str(
-                target_data_dict[index])
-            required_recommended_logs(ind, "datatype",
-                                      data_path)
-    # explicitly convert to string if datatype not present
-    else:
-        target_data_dict[index] = str(
-            target_data_dict[index])
 
 
 def type_checking_target_metadata(ind, target_data_dict, expected_data_types):

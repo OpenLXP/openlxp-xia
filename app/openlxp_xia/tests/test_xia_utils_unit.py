@@ -10,7 +10,7 @@ from openlxp_xia.management.utils.xia_internal import (
     flatten_list_object, get_key_dict, get_publisher_detail,
     get_target_metadata_key_value, is_date, replace_field_on_target_schema,
     transform_to_target, traverse_dict, type_cast_overwritten_values,
-    update_flattened_object)
+    type_check_change, update_flattened_object)
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from openlxp_xia.management.utils.xss_client import (
@@ -411,6 +411,14 @@ class UtilsTests(TestSetUp):
                              sum(len(v) for v in
                                  self.source_target_mapping.values()))
 
+    def test_type_check_change(self):
+        item = 'General_Information.EndDate'
+        target_metadata = self.target_metadata["General_Information"]
+        type_check_change(1, item, self.expected_datatype,
+                          target_metadata, 'EndDate')
+        self.assertIsInstance(target_metadata[
+                                  "EndDate"], str)
+
     # Test cases for XIS_CLIENT
 
     def test_get_xis_metadata_api_endpoint(self):
@@ -492,9 +500,9 @@ class UtilsTests(TestSetUp):
                       '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
                 target_metadata_schema='AGENT_p2881_target_metadata_schema' +
-                '.json',
+                                       '.json',
                 source_metadata_schema='AGENT_p2881_target_metadata_schema' +
-                '.json'
+                                       '.json'
             )
             xia_config_obj.return_value = xiaConfig
             read_obj.return_value = read_obj
@@ -510,9 +518,9 @@ class UtilsTests(TestSetUp):
             xss_api = "http://test_xss_api"
             xiaConfig = XIAConfiguration(
                 target_metadata_schema='AGENT_p2881_target_metadata_schema' +
-                '.json',
+                                       '.json',
                 source_metadata_schema='AGENT_p2881_target_metadata_schema' +
-                '.json',
+                                       '.json',
                 xss_api=xss_api
             )
             xia_config_obj.first.return_value = xiaConfig
@@ -522,8 +530,8 @@ class UtilsTests(TestSetUp):
     def test_read_json_data(self):
         """Test for retrieving XSS json schemas """
         with patch('openlxp_xia.management.utils.xss_client.xss_get') as \
-            xss_host, patch('openlxp_xia.management.utils.xss_client.'
-                            'requests') as req:
+                xss_host, patch('openlxp_xia.management.utils.xss_client.'
+                                'requests') as req:
             xss_api = "http://test_xss_api"
             schema = {"schema": {"test": "val"}}
             xss_host.return_value = xss_api

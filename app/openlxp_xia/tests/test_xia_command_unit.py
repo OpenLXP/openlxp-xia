@@ -15,7 +15,7 @@ from openlxp_xia.management.commands.load_target_metadata import (
 from openlxp_xia.management.commands.transform_source_metadata import (
     create_supplemental_metadata, create_target_metadata_dict,
     get_source_metadata_for_transformation, overwrite_append_metadata,
-    overwrite_metadata_field, transform_source_using_key, type_check_change,
+    overwrite_metadata_field, transform_source_using_key,
     type_checking_target_metadata)
 from openlxp_xia.management.commands.validate_source_metadata import (
     get_source_metadata_for_validation,
@@ -272,14 +272,6 @@ class CommandTests(TestSetUp):
 
             return_val = overwrite_metadata_field(self.target_metadata)
             self.assertIsInstance(return_val, dict)
-
-    def test_type_check_change(self):
-        item = 'General_Information.EndDate'
-        target_metadata = self.target_metadata["General_Information"]
-        type_check_change(1, item, self.expected_datatype,
-                          target_metadata, 'EndDate')
-        self.assertIsInstance(target_metadata[
-                                  "EndDate"], str)
 
     def test_overwrite_append_metadata(self):
         """test Overwrite & append metadata fields based on overwrite flag """

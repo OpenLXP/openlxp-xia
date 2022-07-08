@@ -309,3 +309,32 @@ def transform_to_target(source_metadata, target_mapping):
                 source_metadata, target_mapping, element)
 
     return target_mapping
+
+
+def type_check_change(ind, item, expected_data_types, target_data_dict, index):
+    if item in expected_data_types:
+        # data path assignment if type check is for a list or an element
+        if isinstance(index, int):
+            data_path = item + "." + str(index)
+        else:
+            data_path = item
+        # check for datetime datatype for field in metadata
+        if expected_data_types[item] == "datetime":
+            if not is_date(target_data_dict[index]):
+                # explicitly convert to string if incorrect
+                target_data_dict[index] = str(
+                    target_data_dict[index])
+                required_recommended_logs(ind, "datatype",
+                                          data_path)
+        # check for datatype for field in metadata(except datetime)
+        elif (not isinstance(target_data_dict[index],
+                             expected_data_types[item])):
+            # explicitly convert to string if incorrect
+            target_data_dict[index] = str(
+                target_data_dict[index])
+            required_recommended_logs(ind, "datatype",
+                                      data_path)
+    # explicitly convert to string if datatype not present
+    else:
+        target_data_dict[index] = str(
+            target_data_dict[index])
