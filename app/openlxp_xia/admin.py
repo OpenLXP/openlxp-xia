@@ -22,13 +22,11 @@ unmarked_default.short_description = "Unmarked default values for fields"
 @admin.register(XIAConfiguration)
 class XIAConfigurationAdmin(admin.ModelAdmin):
     list_display = (
-        'publisher',
+        'publisher', 'xss_api',
         'source_metadata_schema',
-        'source_target_mapping',
         'target_metadata_schema',)
-    fields = ['publisher',
-              'source_metadata_schema',
-              ('source_target_mapping',
+    fields = ['publisher', 'xss_api',
+              ('source_metadata_schema',
                'target_metadata_schema')]
 
     def delete_queryset(self, request, queryset):
