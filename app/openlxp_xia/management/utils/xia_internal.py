@@ -1,3 +1,4 @@
+import copy
 import datetime
 import hashlib
 import logging
@@ -29,54 +30,41 @@ def replace_field_on_target_schema(ind1,
     """Replacing values in field referring target schema EducationalContext to
     course.MANDATORYTRAINING"""
 
-    target_name = {
-        "Course": [
-            "EducationalContext",
-        ]
-    }
-    for target_section_name in target_name:
-        for target_field_name in target_name[target_section_name]:
-            if target_data_dict[target_section_name]. \
-                    get(target_field_name):
+    field_list = ["Course.EducationalContext"]
 
-                if target_data_dict[target_section_name][
-                    target_field_name] == 'y' or \
-                        target_data_dict[
-                            target_section_name][
-                            target_field_name] == 'Y':
-                    target_data_dict[
-                        target_section_name][
-                        target_field_name] = 'Mandatory'
+    for field in field_list:
+        key_list = field.split(".")
+        check_key_dict = target_data_dict
+        check_key_dict = traverse_dict_with_key_list(check_key_dict, key_list)
+        if check_key_dict:
+            if key_list[-1] in check_key_dict:
+                if check_key_dict[key_list[-1]] == 'y' or \
+                        check_key_dict[key_list[-1]] == 'Y':
+                    check_key_dict[key_list[-1]] = 'Mandatory'
                 else:
-                    if target_data_dict[
-                        target_section_name][
-                        target_field_name] == 'n' or \
-                            target_data_dict[
-                                target_section_name][
-                                target_field_name] == 'N':
-                        target_data_dict[
-                            target_section_name][
-                            target_field_name] = 'Non - ' \
-                                                 'Mandatory'
+                    if check_key_dict[key_list[-1]] or \
+                            check_key_dict[key_list[-1]] == 'N':
+                        check_key_dict[key_list[-1]] = 'Non - ' \
+                                                       'Mandatory'
 
 
 def get_target_metadata_key_value(data_dict):
     """Function to create key value for target metadata """
-    field = {
-        "Course": [
-            "CourseCode",
-            "CourseProviderName"
-        ]
-    }
+
+    field_list = ["Course.CourseCode", "Course.CourseProviderName"]
 
     field_values = []
 
-    for item_section in field:
-        for item_name in field[item_section]:
-            if not data_dict[item_section].get(item_name):
-                logger.info('Field name ' + item_name + ' is missing for '
-                                                        'key creation')
-            field_values.append(data_dict[item_section].get(item_name))
+    for key_field in field_list:
+        key_list = key_field.split(".")
+        key_dict = copy.deepcopy(data_dict)
+        key_dict = traverse_dict_with_key_list(key_dict, key_list)
+        if key_dict:
+            if key_list[-1] in key_dict:
+                field_values.append(key_dict[key_list[-1]])
+            else:
+                logger.error('Field name ' + key_list[-1] + ' is missing for '
+                                                            'key creation')
     # Key value creation for source metadata
     key_value = '_'.join(field_values)
 
@@ -139,6 +127,19 @@ def traverse_dict(metadata, key_val):
     if key_val not in metadata:
         metadata[key_val] = {}
     return metadata[key_val]
+
+
+def traverse_dict_with_key_list(check_key_dict, key_list):
+    """Function to traverse through dict with a key list"""
+    for key in key_list[:-1]:
+        if key in check_key_dict:
+            check_key_dict = check_key_dict[key]
+        else:
+            check_key_dict = None
+            logger.error("Path to traverse dictionary is "
+                         "incorrect/ does not exist")
+            return check_key_dict
+    return check_key_dict
 
 
 def dict_flatten(data_dict, required_column_list):
@@ -312,6 +313,7 @@ def transform_to_target(source_metadata, target_mapping):
 
 
 def type_check_change(ind, item, expected_data_types, target_data_dict, index):
+    """Function for type checking explicitly converting datatype"""
     if item in expected_data_types:
         # data path assignment if type check is for a list or an element
         if isinstance(index, int):
@@ -334,7 +336,18 @@ def type_check_change(ind, item, expected_data_types, target_data_dict, index):
                 target_data_dict[index])
             required_recommended_logs(ind, "datatype",
                                       data_path)
-    # explicitly convert to string if datatype not present
-    else:
-        target_data_dict[index] = str(
-            target_data_dict[index])
+
+
+def traverse_metadata(metadata):
+    # Check every key elements value in data
+    for element in metadata:
+        # If Json Field value is a Nested Json
+        if isinstance(metadata[element], dict):
+            for sub_element in metadata[element]:
+                if isinstance(metadata[element][sub_element], dict):
+                    traverse_metadata(metadata[element])
+                # If Json Field value is a string
+                elif isinstance(metadata[element][sub_element], str) or \
+                        isinstance(metadata[element][sub_element], list):
+                    return metadata[element]
+                break

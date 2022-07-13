@@ -1,7 +1,6 @@
 import logging
 import uuid
 
-import requests
 from django.db import models
 from django.forms import ValidationError
 from django.urls import reverse
@@ -33,54 +32,7 @@ class XIAConfiguration(TimeStampedModel):
         """String for representing the Model object."""
         return f'{self.id}'
 
-    def field_overwrite(self):
-        # Deleting the corresponding existing value to overwrite
-        MetadataFieldOverwrite.objects.all().delete()
-        # get required columns list from schema files
-        conf = self.xss_api
-        # Read json file and store as a dictionary for processing
-        request_path = conf
-        if self.target_metadata_schema.startswith('xss:'):
-            request_path += 'schemas/?iri=' + self.target_metadata_schema
-            conf += 'mappings/?targetIRI=' + self.target_metadata_schema
-        else:
-            request_path += 'schemas/?name=' + self.target_metadata_schema
-            conf += 'mappings/?targetName=' + self.target_metadata_schema
-        schema = requests.get(request_path, verify=True)
-        target = schema.json()['schema']
-
-        # Read json file and store as a dictionary for processing
-        request_path = conf
-        if self.source_metadata_schema.startswith('xss:'):
-            request_path += '&sourceIRI=' + self.source_metadata_schema
-
-        # saving required column values to be overwritten
-        for section in target:
-            for key, val in target[section].items():
-                if "use" in val:
-                    if val["use"] == 'Required':
-                        # if section in mapping and key in mapping[section]:
-                        metadata_field_overwrite = MetadataFieldOverwrite()
-                        metadata_field_overwrite.field_name = \
-                            str(section) + "." + str(key)
-                        # assigning default value for datatype field
-                        # for metadata
-                        metadata_field_overwrite.field_type = "str"
-                        # assigning datatype field from schema
-                        if "data_type" in val:
-                            metadata_field_overwrite. \
-                                field_type = val["data_type"]
-                        # logging if datatype for field not present in
-                        # schema
-                        else:
-                            logger.warning("Datatype for required value " +
-                                           section + "." + key +
-                                           " not found in schema mapping")
-                        metadata_field_overwrite.save()
-
     def save(self, *args, **kwargs):
-        # Retrieve list of field required to be overwritten
-        self.field_overwrite()
         if not self.pk and XIAConfiguration.objects.exists():
             raise ValidationError('There can be only one XIAConfiguration '
                                   'instance')
@@ -193,9 +145,9 @@ class MetadataFieldOverwrite(TimeStampedModel):
 
     DATATYPE_CHOICES = (
         ('datetime', 'DATETIME'),
-        ('int', 'INTEGER'),
-        ('str', 'CHARACTER'),
-        ('bool', 'BOOLEAN'),
+        ("int", 'INTEGER'),
+        ("str", 'CHARACTER'),
+        ("bool", 'BOOLEAN'),
     )
 
     field_name = models.CharField(max_length=200)

@@ -9,8 +9,8 @@ from openlxp_xia.management.utils.xia_internal import (
     assign_target_value_str_list, dict_flatten, flatten_dict_object,
     flatten_list_object, get_key_dict, get_publisher_detail,
     get_target_metadata_key_value, is_date, replace_field_on_target_schema,
-    transform_to_target, traverse_dict, type_cast_overwritten_values,
-    type_check_change, update_flattened_object)
+    transform_to_target, traverse_dict, traverse_dict_with_key_list,
+    type_cast_overwritten_values, type_check_change, update_flattened_object)
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from openlxp_xia.management.utils.xss_client import (
@@ -412,12 +412,20 @@ class UtilsTests(TestSetUp):
                                  self.source_target_mapping.values()))
 
     def test_type_check_change(self):
+        """Test to function for type checking explicitly converting datatype"""
         item = 'General_Information.EndDate'
         target_metadata = self.target_metadata["General_Information"]
         type_check_change(1, item, self.expected_datatype,
                           target_metadata, 'EndDate')
         self.assertIsInstance(target_metadata[
                                   "EndDate"], str)
+
+    def test_traverse_dict_with_key_list(self):
+        """Test Function to traverse through dict with a key list"""
+        key_list = self.test_target_required_column_names[0].split('.')
+        return_val = \
+            traverse_dict_with_key_list(self.target_metadata, key_list)
+        self.assertEqual(return_val, self.target_metadata[key_list[0]])
 
     # Test cases for XIS_CLIENT
 

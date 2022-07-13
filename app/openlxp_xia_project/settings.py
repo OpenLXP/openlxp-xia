@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'openlxp_xia',
+    'openlxp_xia.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [

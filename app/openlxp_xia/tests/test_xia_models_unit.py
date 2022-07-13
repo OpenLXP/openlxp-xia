@@ -33,7 +33,7 @@ class ModelTests(TestCase):
     def test_create_two_xia_configuration(self):
         """Test that trying to create more than one XIS Configuration throws
         ValidationError """
-        with patch("openlxp_xia.models.XIAConfiguration.field_overwrite"):
+        with patch('openlxp_xia.signals.read_json_data'):
             with self.assertRaises(ValidationError):
                 xiaConfig = \
                     XIAConfiguration(source_metadata_schema="example1.json",
@@ -45,23 +45,6 @@ class ModelTests(TestCase):
                                      target_metadata_schema="example2.json")
                 xiaConfig.save()
                 xiaConfig2.save()
-
-    def test_xia_field_overwrite(self):
-        """Test that field_overwrite in an XIA Configuration generates
-        MetadataFieldOverwrite objects """
-        with patch("openlxp_xia.models.requests") as mock:
-            target_schema = {"schema": {
-                "start": {"test": {"use": "Required"}}}}
-            transform_schema = {"schema_mapping": {
-                "start": {"test": "start.test"}}}
-            mock.get.return_value = mock
-            mock.json.side_effect = [target_schema, transform_schema]
-            xiaConfig = \
-                XIAConfiguration(source_metadata_schema="example1.json",
-                                 xss_api="https://localhost",
-                                 target_metadata_schema="example1.json")
-            xiaConfig.save()
-            self.assertEqual(MetadataFieldOverwrite.objects.count(), 1)
 
     def test_create_xis_configuration(self):
         """Test that creating a new XIS Configuration entry is successful

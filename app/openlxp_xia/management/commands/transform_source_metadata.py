@@ -9,7 +9,8 @@ from django.utils import timezone
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_target_metadata_key_value,
     replace_field_on_target_schema, transform_to_target, traverse_dict,
-    type_cast_overwritten_values, type_check_change)
+    traverse_dict_with_key_list, type_cast_overwritten_values,
+    type_check_change)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
     get_source_validation_schema, get_target_metadata_for_transformation,
@@ -78,24 +79,24 @@ def overwrite_metadata_field(metadata):
     return metadata
 
 
-def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
+def type_checking_target_metadata(ind, target_data_dict, expected_data_types,
+                                  element):
     """Function for type checking and explicit type conversion of metadata"""
-
-    for section in target_data_dict:
-        for key in target_data_dict[section]:
-            item = str(section) + '.' + str(key)
-            if target_data_dict[section][key]:
-                # check if item has a expected datatype from schema
-                if isinstance(target_data_dict[section][key], list):
-                    for index in range(len(target_data_dict[section][key])):
-                        type_check_change(ind, item, expected_data_types,
-                                          target_data_dict[section][key],
-                                          index)
-                else:
-                    type_check_change(ind, item, expected_data_types,
-                                      target_data_dict[section], key)
-
-    return target_data_dict
+    # for element in expected_data_types:
+    key_list = element.split(".")
+    # check_key_dict = copy.deepcopy(target_data_dict)
+    check_key_dict = target_data_dict
+    check_key_dict = traverse_dict_with_key_list(check_key_dict, key_list)
+    if check_key_dict:
+        if key_list[-1] in check_key_dict:
+            if isinstance(check_key_dict[key_list[-1]], list):
+                for index in range(len(check_key_dict)):
+                    type_check_change(ind, element, expected_data_types,
+                                      check_key_dict[key_list[-1]],
+                                      index)
+            else:
+                type_check_change(ind, element, expected_data_types,
+                                  check_key_dict, key_list[-1])
 
 
 def create_target_metadata_dict(ind, target_mapping_replace, source_metadata,
@@ -122,8 +123,10 @@ def create_target_metadata_dict(ind, target_mapping_replace, source_metadata,
     overwrite_metadata_field(target_data_dict)
 
     # type checking and explicit type conversion of metadata
-    target_data_dict = type_checking_target_metadata(ind, target_data_dict,
-                                                     expected_data_types)
+    for element in expected_data_types:
+        data = copy.copy(target_data_dict)
+        type_checking_target_metadata(ind, data,
+                                      expected_data_types, element)
 
     # send values to be skipped while creating supplemental data
     supplemental_metadata = \

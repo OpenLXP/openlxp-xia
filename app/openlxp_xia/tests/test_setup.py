@@ -438,10 +438,10 @@ class TestSetUp(TestCase):
             'key4': bool
         }
 
-        self.test_target_required_column_names = {
-            'Course.CourseCode',
+        self.test_target_required_column_names = [
             'Course.CourseProviderName',
-            'Course.CourseShortDescription'}
+            'Course.CourseCode',
+            'Course.CourseShortDescription']
         self.recommended_column_name = {'Technical_Information.Thumbnail',
                                         'CourseInstance.Thumbnail'}
 

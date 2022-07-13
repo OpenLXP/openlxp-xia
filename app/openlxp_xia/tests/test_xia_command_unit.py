@@ -160,10 +160,9 @@ class CommandTests(TestSetUp):
         metadata """
 
         key_check = copy.deepcopy(self.target_metadata)
-
-        key_check = \
-            type_checking_target_metadata(1, key_check,
-                                          self.expected_datatype)
+        type_checking_target_metadata(1, key_check,
+                                      self.expected_datatype,
+                                      "General_Information.EndDate")
         self.assertIsInstance(key_check['General_Information'][
                                   "EndDate"], str)
 
