@@ -1,5 +1,5 @@
 
-# OPENLXP-XIA
+# OPENLXP-XIA!
 # What is it?
 OpenLXP XIA is a Python package that provides the validation functionality of extracted metadata from the source. In addition, it helps transform metadata into target metadata and further load it into indexing services. The OpenLXP XIA package does not include the metadata extraction process because extraction methods can be different for different sources. But once metadata gets extracted from the source, OpenLXP-XIA continues the V-T-V-L  (Validate-Transform-Validate-Load) cycle. 
 
