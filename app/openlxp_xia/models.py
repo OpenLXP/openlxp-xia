@@ -40,7 +40,7 @@ class XIAConfiguration(TimeStampedModel):
         conf = self.xss_api
         # Read json file and store as a dictionary for processing
         request_path = conf
-        if(self.target_metadata_schema.startswith('xss:')):
+        if (self.target_metadata_schema.startswith('xss:')):
             request_path += 'schemas/?iri=' + self.target_metadata_schema
             conf += 'mappings/?targetIRI=' + self.target_metadata_schema
         else:
@@ -51,7 +51,7 @@ class XIAConfiguration(TimeStampedModel):
 
         # Read json file and store as a dictionary for processing
         request_path = conf
-        if(self.source_metadata_schema.startswith('xss:')):
+        if (self.source_metadata_schema.startswith('xss:')):
             request_path += '&sourceIRI=' + self.source_metadata_schema
         else:
             request_path += '&sourceName=' + self.source_metadata_schema
@@ -113,6 +113,11 @@ class XISConfiguration(TimeStampedModel):
     xis_supplemental_api_endpoint = models.CharField(
         help_text='Enter the XIS Supplemental Ledger API endpoint',
         max_length=200
+    )
+
+    xis_api_key = models.CharField(
+        help_text="Enter the XIS API Key",
+        max_length=40
     )
 
     def save(self, *args, **kwargs):

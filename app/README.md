@@ -1,6 +1,6 @@
 
 # OPENLXP-XIA
-# What is it?
+## What is it?
 OpenLXP XIA is a Python package that provides the validation functionality of extracted metadata from the source. In addition, it helps transform metadata into target metadata and further load it into indexing services. The OpenLXP XIA package does not include the metadata extraction process because extraction methods can be different for different sources. But once metadata gets extracted from the source, OpenLXP-XIA continues the V-T-V-L  (Validate-Transform-Validate-Load) cycle. 
 
 The schema files used for validation can be placed on the schema server. Currently, OpenLXP-XIA uses AWS S3 buckets as a schema server. 
@@ -8,7 +8,7 @@ The schema files used for validation can be placed on the schema server. Current
 Below are the workflow which are performed by the OpenLXP-XIA after package installation.
 
 
-# Workflows
+## Workflows
 The OpenLXP-XIA implements five core workflows after extracting metadata from the Specifiec source, as follows:
 
 1. `Validate`: Compares extracted learning experience metadata against the configured source metadata reference schema stored in the Experience Schema Service (XSS).
@@ -21,11 +21,11 @@ The OpenLXP-XIA implements five core workflows after extracting metadata from th
 
 5. `Log`: Records error, warning, informational, and debug events which can be reviewed and monitored.
 
-# Prerequisites
+## Prerequisites
 `Python >=3.7` : Download and install python from here [Python](https://www.python.org/downloads/).
 
 
-# Installation
+## Installation
 
     $ python -m pip install OpenLXP-XIA (use the latest package version)
 
@@ -39,7 +39,7 @@ INSTALLED_APPS = [
         ....
 ]
 
-# Configuration
+## Configuration
 
 1. On the Admin page, log in with the admin credentials 
 
@@ -84,7 +84,7 @@ INSTALLED_APPS = [
     
     `Overwrite`: Check the box if existing values need to be overwritten.
 
-# Running ETL Pipeline:
+## Running ETL Pipeline:
 
 ETL or EVTVL (Extract-Transform-Load) Pipeline can be run through two ways:
 
@@ -98,12 +98,12 @@ To run ETL tasks run below API:
  On the admin page add periodic task and it's schedule. On selected time interval celery task will run.
 
 
-# Logs
+## Logs
 To check the running of celery tasks, check the logs of application and celery container.
 
-# Documentation
+## Documentation
 
-# Troubleshooting
+## Troubleshooting
 
 
 ## License
