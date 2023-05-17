@@ -14,7 +14,7 @@ class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
     publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
-    xss_api = models.URLField(help_text='Enter the XSS API')
+    xss_api = models.CharField(help_text='Enter the XSS API', max_length=200)
     source_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the '
                                                         'schema name/IRI')
