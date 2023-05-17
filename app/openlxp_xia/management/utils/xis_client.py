@@ -52,8 +52,9 @@ def posting_supplemental_metadata_to_xis(renamed_data):
 class TokenAuth(AuthBase):
     """Attaches HTTP Authentication Header to the given Request object."""
 
-    def __call__(self, r):
+    def __call__(self, r, token_name='token'):
         # modify and return the request
-        r.headers['Authenticate'] = "Token " + \
+
+        r.headers['Authorization'] = token_name + ' ' + \
             XISConfiguration.objects.first().xis_api_key
         return r
