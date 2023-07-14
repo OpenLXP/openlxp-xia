@@ -117,7 +117,7 @@ class XISConfiguration(TimeStampedModel):
 
     xis_api_key = models.CharField(
         help_text="Enter the XIS API Key",
-        max_length=40
+        max_length=128
     )
 
     def save(self, *args, **kwargs):
