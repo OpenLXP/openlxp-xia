@@ -187,9 +187,9 @@ class MetadataLedger(TimeStampedModel):
         max_length=10, blank=True, choices=METADATA_VALIDATION_CHOICES)
 
     def clean(self):
-        data_clean = self.source_metadata
-        data_check = confusable_homoglyphs_check(data_clean)
-        self.source_metadata = bleach_data_to_json(data_check)
+        source_data = self.source_metadata
+        data_checked = confusable_homoglyphs_check(source_data)
+        self.source_metadata = bleach_data_to_json(data_checked)
 
 
 class SupplementalLedger(TimeStampedModel):
@@ -228,6 +228,11 @@ class SupplementalLedger(TimeStampedModel):
         choices=RECORD_TRANSMISSION_STATUS_CHOICES)
     supplemental_metadata_transmission_status_code = models.IntegerField(
         blank=True, null=True)
+
+    def clean(self):
+        supplemental_data = self.supplemental_metadata
+        data_checked = confusable_homoglyphs_check(supplemental_data)
+        self.supplemental_metadata = bleach_data_to_json(data_checked)
 
 
 class MetadataFieldOverwrite(TimeStampedModel):
