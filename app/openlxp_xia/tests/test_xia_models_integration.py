@@ -17,12 +17,12 @@ class ModelTests(TestCase):
                 xiaConfig = XIAConfiguration(
                     publisher="XYZ",
                     source_metadata_schema="XYZ_source_validate_schema.json",
-                    source_target_mapping="XYZ_target_metadata_schema.json",
+                    xss_api="https://localhost",
                     target_metadata_schema="p2881_schema.json")
                 xiaConfig2 = XIAConfiguration(
                     publisher="ABC",
                     source_metadata_schema="ABC_source_validate_schema.json",
-                    source_target_mapping="ABC_target_metadata_schema.json",
+                    xss_api="https://localhost",
                     target_metadata_schema="p2881_schema.json")
                 xiaConfig.save()
                 xiaConfig2.save()
