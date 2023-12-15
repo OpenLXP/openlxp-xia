@@ -1,8 +1,6 @@
-import json
 import logging
-import os
 
-import boto3
+import requests
 
 from openlxp_xia.management.utils.xia_internal import dict_flatten
 from openlxp_xia.models import XIAConfiguration
@@ -10,21 +8,35 @@ from openlxp_xia.models import XIAConfiguration
 logger = logging.getLogger('dict_config_logger')
 
 
-def get_aws_bucket_name():
-    """function returns the source bucket name"""
-    bucket = os.environ.get('BUCKET_NAME')
-    return bucket
+def xss_get():
+    """Function to get xss configuration value"""
+    conf = XIAConfiguration.objects.first()
+    return conf.xss_api
 
 
-def read_json_data(file_name):
-    """Setting file path for json files and ingesting as dictionary values """
-    s3 = boto3.resource('s3')
-    bucket_name = get_aws_bucket_name()
-    # Read json file and store as a dictionary for processing
-    json_path = s3.Object(bucket_name, file_name)
-    json_content = json_path.get()['Body'].read().decode('utf-8')
-    data_dict = json.loads(json_content)
-    return data_dict
+def read_json_data(source_schema_ref, target_schema_ref=None):
+    """get schema from xss and ingest as dictionary values"""
+    xss_host = xss_get()
+    request_path = xss_host
+    if(target_schema_ref is not None):
+        if(target_schema_ref.startswith('xss:')):
+            request_path += 'mappings/?targetIRI=' + target_schema_ref
+        else:
+            request_path += 'mappings/?targetName=' + target_schema_ref
+        if(source_schema_ref.startswith('xss:')):
+            request_path += '&sourceIRI=' + source_schema_ref
+        else:
+            request_path += '&sourceName=' + source_schema_ref
+        schema = requests.get(request_path, verify=True)
+        json_content = schema.json()['schema_mapping']
+    else:
+        if(source_schema_ref.startswith('xss:')):
+            request_path += 'schemas/?iri=' + source_schema_ref
+        else:
+            request_path += 'schemas/?name=' + source_schema_ref
+        schema = requests.get(request_path, verify=True)
+        json_content = schema.json()['schema']
+    return json_content
 
 
 def get_source_validation_schema():
@@ -108,10 +120,12 @@ def get_target_metadata_for_transformation():
     """Retrieve target metadata schema from XIA configuration """
     logger.info("Configuration of schemas and files for transformation")
     xia_data = XIAConfiguration.objects.first()
-    target_metadata_schema = xia_data.source_target_mapping
-    if not target_metadata_schema:
-        logger.warning("Target metadata schema field name is empty!")
+    target_metadata_schema = xia_data.target_metadata_schema
+    source_metadata_schema = xia_data.source_metadata_schema
+    if not target_metadata_schema or not source_metadata_schema:
+        logger.warning("Metadata schema field name is empty!")
     logger.info("Reading schema for transformation")
     # Read source transformation schema as dictionary
-    target_mapping_dict = read_json_data(target_metadata_schema)
+    target_mapping_dict = read_json_data(
+        source_metadata_schema, target_metadata_schema)
     return target_mapping_dict
