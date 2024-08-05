@@ -6,6 +6,7 @@ from django.db import models
 from django.forms import ValidationError
 from django.core.validators import RegexValidator
 from django.urls import reverse
+from django.utils import timezone
 from openlxp_xia.management.utils.model_help import confusable_homoglyphs_check
 from openlxp_xia.management.utils.model_help import bleach_data_to_json
 from model_utils.models import TimeStampedModel
@@ -59,7 +60,7 @@ class XIAConfiguration(TimeStampedModel):
         else:
             request_path += 'schemas/?name=' + self.target_metadata_schema
             conf += 'mappings/?targetName=' + self.target_metadata_schema
-        schema = requests.get(request_path, verify=True)
+        schema = requests.get(request_path, verify=False)
         target = schema.json()['schema']
 
         # Read json file and store as a dictionary for processing
@@ -68,7 +69,7 @@ class XIAConfiguration(TimeStampedModel):
             request_path += '&sourceIRI=' + self.source_metadata_schema
         else:
             request_path += '&sourceName=' + self.source_metadata_schema
-        schema = requests.get(request_path, verify=True)
+        schema = requests.get(request_path, verify=False)
         mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
@@ -186,10 +187,17 @@ class MetadataLedger(TimeStampedModel):
     target_metadata_validation_status = models.CharField(
         max_length=10, blank=True, choices=METADATA_VALIDATION_CHOICES)
 
-    def clean(self):
+    def save(self, *args, **kwargs):
         source_data = self.source_metadata
+        # Checking for confusable hologlyphs 
         data_checked = confusable_homoglyphs_check(source_data)
-        self.source_metadata = bleach_data_to_json(data_checked)
+        if not data_checked:
+            # If data check failed setting metadata to inactive
+            self.record_lifecycle_status = "Inactive"
+            self.metadata_record_inactivation_date=timezone.now()
+        # cleaning metadata using bleach 
+        self.source_metadata = bleach_data_to_json(source_data)
+        return super(MetadataLedger, self).save(*args, **kwargs)
 
 
 class SupplementalLedger(TimeStampedModel):
@@ -229,10 +237,17 @@ class SupplementalLedger(TimeStampedModel):
     supplemental_metadata_transmission_status_code = models.IntegerField(
         blank=True, null=True)
 
-    def clean(self):
-        supplemental_data = self.supplemental_metadata
-        data_checked = confusable_homoglyphs_check(supplemental_data)
-        self.supplemental_metadata = bleach_data_to_json(data_checked)
+    def save(self, *args, **kwargs):
+        source_data = self.supplemental_metadata
+        # Checking for confusable hologlyphs 
+        data_checked = confusable_homoglyphs_check(source_data)
+        if not data_checked:
+            # If data check failed setting metadata to inactive
+            self.record_lifecycle_status = "Inactive"
+            self.metadata_record_inactivation_date=timezone.now()
+        # cleaning metadata using bleach 
+        self.source_metadata = bleach_data_to_json(source_data)
+        return super(SupplementalLedger, self).save(*args, **kwargs)
 
 
 class MetadataFieldOverwrite(TimeStampedModel):

@@ -1,4 +1,3 @@
-import html
 import bleach
 import logging
 from confusable_homoglyphs import categories, confusables
@@ -14,15 +13,15 @@ def bleach_data_to_json(rdata):
     WARNING rdata will be edited
     :return: dict"""
 
-    keysList = list(rdata.keys())
-    for key in keysList:
+    # iterate over dict
+    for key in rdata:
+        # if string, clean
         if isinstance(rdata[key], str):
-            # if string, clean
             rdata[key] = bleach.clean(rdata[key], tags={}, strip=True)
-            rdata[key] = html.unescape(rdata[key])
+        # if dict, enter dict
         if isinstance(rdata[key], dict):
-            # if dict, enter dict
             rdata[key] = bleach_data_to_json(rdata[key])
+
     return rdata
 
 
