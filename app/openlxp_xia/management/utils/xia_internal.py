@@ -281,3 +281,23 @@ def type_cast_overwritten_values(field_type, field_value):
         return None
 
     return value
+
+
+def traverse_dict(metadata, key_val):
+    """Function to traverse through dict"""
+    if key_val not in metadata:
+        metadata[key_val] = {}
+    return metadata[key_val]
+
+
+def traverse_dict_with_key_list(check_key_dict, key_list):
+    """Function to traverse through dict with a key list"""
+    for key in key_list[:-1]:
+        if key in check_key_dict:
+            check_key_dict = check_key_dict[key]
+        else:
+            check_key_dict = None
+            logger.error("Path to traverse dictionary is "
+                         "incorrect/ does not exist")
+            return check_key_dict
+    return check_key_dict
