@@ -60,7 +60,7 @@ class XIAConfiguration(TimeStampedModel):
         else:
             request_path += 'schemas/?name=' + self.target_metadata_schema
             conf += 'mappings/?targetName=' + self.target_metadata_schema
-        schema = requests.get(request_path, verify=False)
+        schema = requests.get(request_path)
         target = schema.json()['schema']
 
         # Read json file and store as a dictionary for processing
@@ -69,7 +69,7 @@ class XIAConfiguration(TimeStampedModel):
             request_path += '&sourceIRI=' + self.source_metadata_schema
         else:
             request_path += '&sourceName=' + self.source_metadata_schema
-        schema = requests.get(request_path, verify=False)
+        schema = requests.get(request_path)
         mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
