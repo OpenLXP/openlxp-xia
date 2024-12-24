@@ -41,7 +41,9 @@ def get_target_metadata_key_value(data_dict):
                 logger.info('Field name ' + item_name + ' is missing for '
                                                         'key creation')
             field_values.append(data_dict[item_section].get(item_name))
-
+    
+    # Key value creation for source metadata
+    key_value = '_'.join(field_values)
 
     # Key value hash creation for source metadata
     key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
