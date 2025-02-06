@@ -8,7 +8,7 @@ from django.test import tag
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, flatten_dict_object, flatten_list_object, get_key_dict,
     get_publisher_detail, get_target_metadata_key_value, is_date,
-    replace_field_on_target_schema, type_cast_overwritten_values,
+    type_cast_overwritten_values,
     update_flattened_object)
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
@@ -50,29 +50,29 @@ class UtilsTests(TestSetUp):
         result = get_key_dict(first_value, second_value)
         self.assertEquals(result, expected_result)
 
-    def test_replace_field_on_target_schema(self):
-        """test to check if values under educational context are replaced"""
-        test_dict0 = {'0': {
-            "Course": {
-                "EducationalContext": "Y"
-            }
-        }
-        }
+    # def test_replace_field_on_target_schema(self):
+    #     """test to check if values under educational context are replaced"""
+    #     test_dict0 = {'0': {
+    #         "Course": {
+    #             "EducationalContext": "Y"
+    #         }
+    #     }
+    #     }
 
-        test_dict1 = {'1': {
-            "Course": {
-                "EducationalContext": "n"
-            }
-        }
-        }
+    #     test_dict1 = {'1': {
+    #         "Course": {
+    #             "EducationalContext": "n"
+    #         }
+    #     }
+    #     }
 
-        replace_field_on_target_schema('0', test_dict0)
-        self.assertEqual(test_dict0['0']['Course']['EducationalContext'],
-                         'Mandatory')
+    #     replace_field_on_target_schema('0', test_dict0)
+    #     self.assertEqual(test_dict0['0']['Course']['EducationalContext'],
+    #                      'Mandatory')
 
-        replace_field_on_target_schema('1', test_dict1)
-        self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
-                         'Non - Mandatory')
+    #     replace_field_on_target_schema('1', test_dict1)
+    #     self.assertEqual(test_dict1['1']['Course']['EducationalContext'],
+    #                      'Non - Mandatory')
 
     @data((1, False), ("1990-12-1", True), ("Monday at 12:01am", True))
     @unpack

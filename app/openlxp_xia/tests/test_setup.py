@@ -28,8 +28,8 @@ class TestSetUp(TestCase):
         self.hash_value = "f454114ba41034e14df2a8f3c14a047d"
 
         self.target_metadata = {
-            "Course": {
-                "CourseCode": "TestData 123",
+            "p2881_course_profile": {
+                "Course_ID": "TestData 123",
                 "CourseTitle": "Acquisition Law",
                 "CourseAudience": "test_data",
                 "DepartmentName": "",
@@ -72,8 +72,8 @@ class TestSetUp(TestCase):
         self.hash_value_overwrite = "81b86d6ac3b4d8561bd26f11d8feea9a"
 
         self.target_metadata_overwrite = {
-            "Course": {
-                "CourseCode": "TestData 234",
+            "p2881_course_profile": {
+                "Course_ID": "TestData 234",
                 "CourseTitle": "Acquisition Law",
                 "CourseAudience": "test_data",
                 "DepartmentName": "",
@@ -104,8 +104,8 @@ class TestSetUp(TestCase):
             'metadata_record_uuid': UUID(
                 '09edea0e-6c83-40a6-951e-2acee3e99502'),
             'target_metadata': {
-                "Course": {
-                    "CourseCode": "TestData 123",
+                "p2881_course_profile": {
+                    "Course_ID": "TestData 123",
                     "CourseTitle": "Acquisition Law",
                     "CourseAudience": "test_data",
                     "DepartmentName": "",
@@ -135,8 +135,8 @@ class TestSetUp(TestCase):
             'unique_record_identifier': UUID(
                 '09edea0e-6c83-40a6-951e-2acee3e99502'),
             'metadata': {
-                "Course": {
-                    "CourseCode": "TestData 123",
+                "p2881_course_profile": {
+                    "Course_ID": "TestData 123",
                     "CourseTitle": "Acquisition Law",
                     "CourseAudience": "test_data",
                     "DepartmentName": "",
@@ -224,8 +224,8 @@ class TestSetUp(TestCase):
         self.hash_value_invalid = "d9eccc6651c0b95db975aca43fa9b481"
 
         self.target_metadata_invalid = {
-            "Course": {
-                "CourseCode": "TestData 1234",
+            "p2881_course_profile": {
+                "Course_ID": "TestData 1234",
                 "CourseTitle": "Acquisition Law",
                 "CourseAudience": "test_data",
                 "DepartmentName": "",
@@ -252,10 +252,10 @@ class TestSetUp(TestCase):
         self.target_hash_value_invalid = "eaf3e57b7f21b4d813f1258fb4ebf89d"
 
         self.source_target_mapping = {
-            "Course": {
+            "p2881_course_profile": {
                 "CourseProviderName": "SOURCESYSTEM",
                 "DepartmentName": "",
-                "CourseCode": "KEY",
+                "Course_ID": "KEY",
                 "CourseTitle": "test_name",
                 "CourseDescription": "test_description",
                 "CourseAudience": "test_attendies",

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, get_target_metadata_key_value, is_date,
-    replace_field_on_target_schema, required_recommended_logs,
+    required_recommended_logs,
     type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
@@ -233,8 +233,8 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
             # Looping through target values in dictionary
             for ind1 in target_data_dict:
                 # Replacing values in field referring target schema
-                replace_field_on_target_schema(ind1,
-                                               target_data_dict)
+                # replace_field_on_target_schema(ind1,
+                #                                target_data_dict)
                 # Key creation for target metadata
                 key = get_target_metadata_key_value(target_data_dict[ind1])
 

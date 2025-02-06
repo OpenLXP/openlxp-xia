@@ -24,62 +24,62 @@ def get_key_dict(key_value, key_value_hash):
     return key
 
 
-def replace_field_on_target_schema(ind1,
-                                   target_data_dict):
-    """Replacing values in field referring target schema EducationalContext to
-    course.MANDATORYTRAINING"""
+# def replace_field_on_target_schema(ind1,
+#                                    target_data_dict):
+#     """Replacing values in field referring target schema EducationalContext to
+#     course.MANDATORYTRAINING"""
 
-    target_name = {
-        "Course": [
-            "EducationalContext",
-        ]
-    }
-    for target_section_name in target_name:
-        for target_field_name in target_name[target_section_name]:
-            if target_data_dict[ind1][target_section_name]. \
-                    get(target_field_name):
+#     target_name = {
+#         "Course": [
+#             "EducationalContext",
+#         ]
+#     }
+#     for target_section_name in target_name:
+#         for target_field_name in target_name[target_section_name]:
+#             if target_data_dict[ind1][target_section_name]. \
+#                     get(target_field_name):
 
-                if target_data_dict[ind1][target_section_name][
-                    target_field_name] == 'y' or \
-                        target_data_dict[ind1][
-                            target_section_name][
-                            target_field_name] == 'Y':
-                    target_data_dict[ind1][
-                        target_section_name][
-                        target_field_name] = 'Mandatory'
-                else:
-                    if target_data_dict[ind1][
-                        target_section_name][
-                        target_field_name] == 'n' or \
-                            target_data_dict[ind1][
-                                target_section_name][
-                                target_field_name] == 'N':
-                        target_data_dict[ind1][
-                            target_section_name][
-                            target_field_name] = 'Non - ' \
-                                                 'Mandatory'
+#                 if target_data_dict[ind1][target_section_name][
+#                     target_field_name] == 'y' or \
+#                         target_data_dict[ind1][
+#                             target_section_name][
+#                             target_field_name] == 'Y':
+#                     target_data_dict[ind1][
+#                         target_section_name][
+#                         target_field_name] = 'Mandatory'
+#                 else:
+#                     if target_data_dict[ind1][
+#                         target_section_name][
+#                         target_field_name] == 'n' or \
+#                             target_data_dict[ind1][
+#                                 target_section_name][
+#                                 target_field_name] == 'N':
+#                         target_data_dict[ind1][
+#                             target_section_name][
+#                             target_field_name] = 'Non - ' \
+#                                                  'Mandatory'
 
 
 def get_target_metadata_key_value(data_dict):
     """Function to create key value for target metadata """
-    field = {
-        "Course": [
-            "CourseCode",
-            "CourseProviderName"
-        ]
-    }
+    # field = {
+    #     "p2881_course_profile": [
+    #         "Course_ID",
+    #         "CourseProviderName"
+    #     ]
+    # }
 
-    field_values = []
+    # field_values = []
 
-    for item_section in field:
-        for item_name in field[item_section]:
-            if not data_dict[item_section].get(item_name):
-                logger.info('Field name ' + item_name + ' is missing for '
-                                                        'key creation')
-            field_values.append(data_dict[item_section].get(item_name))
+    # for item_section in field:
+    #     for item_name in field[item_section]:
+    #         if not data_dict[item_section].get(item_name):
+    #             logger.info('Field name ' + item_name + ' is missing for '
+    #                                                     'key creation')
+    #         field_values.append(data_dict[item_section].get(item_name))
 
     # Key value creation for source metadata
-    key_value = '_'.join(field_values)
+    key_value = data_dict['p2881_course_profile']['CourseProviderName'].replace(' ','_') + '-' + str(data_dict['p2881_course_profile']['Course_ID']).replace(' ','_') + '-DOTE-000'
 
     # Key value hash creation for source metadata
     key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
