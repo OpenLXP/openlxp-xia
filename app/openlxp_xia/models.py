@@ -2,26 +2,30 @@ import logging
 import uuid
 
 import requests
+from django.core.validators import RegexValidator
 from django.db import models
 from django.forms import ValidationError
-from django.core.validators import RegexValidator
 from django.urls import reverse
 from django.utils import timezone
-from openlxp_xia.management.utils.model_help import confusable_homoglyphs_check
-from openlxp_xia.management.utils.model_help import bleach_data_to_json
 from model_utils.models import TimeStampedModel
+
+from openlxp_xia.management.utils.model_help import (
+    bleach_data_to_json, confusable_homoglyphs_check)
 
 logger = logging.getLogger('dict_config_logger')
 
 
-rcheck = (r'(?!(\A( \x09\x0A\x0D\x20-\x7E # ASCII '
-          r'| \xC2-\xDF # non-overlong 2-byte '
-          r'| \xE0\xA0-\xBF # excluding overlongs '
-          r'| \xE1-\xEC\xEE\xEF{2} # straight 3-byte '
-          r'| \xED\x80-\x9F # excluding surrogates '
-          r'| \xF0\x90-\xBF{2} # planes 1-3 '
-          r'| \xF1-\xF3{3} # planes 4-15 '
-          r'| \xF4\x80-\x8F{2} # plane 16 )*\Z))')
+rcheck = (
+    r'^('  # start at start
+    r'[\x09\x0A\x0D\x20-\x7E]'  # ASCII
+    r'|[\xC2-\xDF]'  # non-overlong 2-byte
+    r'|[\xE0\xA0-\xBF]'  # excluding overlongs
+    r'|[\xE1-\xEC\xEE\xEF]{2}'  # straight 3-byte
+    r'|[\xED\x80-\x9F]'  # excluding surrogates
+    r'|[\xF0\x90-\xBF]{2}'  # planes 1-3
+    r'|[\xF1-\xF3]{3}'  # planes 4-15
+    r'|[\xF4\x80-\x8F]{2}'  # plane 16
+    r')*$')  # match all until end
 
 
 class XIAConfiguration(TimeStampedModel):
@@ -189,13 +193,13 @@ class MetadataLedger(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         source_data = self.source_metadata
-        # Checking for confusable hologlyphs 
+        # Checking for confusable hologlyphs
         data_checked = confusable_homoglyphs_check(source_data)
         if not data_checked:
             # If data check failed setting metadata to inactive
             self.record_lifecycle_status = "Inactive"
-            self.metadata_record_inactivation_date=timezone.now()
-        # cleaning metadata using bleach 
+            self.metadata_record_inactivation_date = timezone.now()
+        # cleaning metadata using bleach
         self.source_metadata = bleach_data_to_json(source_data)
         return super(MetadataLedger, self).save(*args, **kwargs)
 
@@ -239,13 +243,13 @@ class SupplementalLedger(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         source_data = self.supplemental_metadata
-        # Checking for confusable hologlyphs 
+        # Checking for confusable hologlyphs
         data_checked = confusable_homoglyphs_check(source_data)
         if not data_checked:
             # If data check failed setting metadata to inactive
             self.record_lifecycle_status = "Inactive"
-            self.metadata_record_inactivation_date=timezone.now()
-        # cleaning metadata using bleach 
+            self.metadata_record_inactivation_date = timezone.now()
+        # cleaning metadata using bleach
         self.source_metadata = bleach_data_to_json(source_data)
         return super(SupplementalLedger, self).save(*args, **kwargs)
 
