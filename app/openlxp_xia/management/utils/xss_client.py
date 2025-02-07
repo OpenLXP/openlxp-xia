@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from django.core.cache import cache
 
 from openlxp_xia.management.utils.xia_internal import dict_flatten
 from openlxp_xia.models import XIAConfiguration
@@ -18,24 +19,35 @@ def read_json_data(source_schema_ref, target_schema_ref=None):
     """get schema from xss and ingest as dictionary values"""
     xss_host = xss_get()
     request_path = xss_host
-    if(target_schema_ref is not None):
-        if(target_schema_ref.startswith('xss:')):
+    if (target_schema_ref is not None):
+        # check cache for schema
+        cached_schema = cache.get(
+            source_schema_ref + 'map' + target_schema_ref)
+        if cached_schema:
+            return cached_schema
+        if (target_schema_ref.startswith('xss:')):
             request_path += 'mappings/?targetIRI=' + target_schema_ref
         else:
             request_path += 'mappings/?targetName=' + target_schema_ref
-        if(source_schema_ref.startswith('xss:')):
+        if (source_schema_ref.startswith('xss:')):
             request_path += '&sourceIRI=' + source_schema_ref
         else:
             request_path += '&sourceName=' + source_schema_ref
         schema = requests.get(request_path, verify=False)
         json_content = schema.json()['schema_mapping']
+        cache.add(source_schema_ref + 'map' +
+                  target_schema_ref, json_content, timeout=10)
     else:
-        if(source_schema_ref.startswith('xss:')):
+        cached_schema = cache.get(source_schema_ref)
+        if cached_schema:
+            return cached_schema
+        if (source_schema_ref.startswith('xss:')):
             request_path += 'schemas/?iri=' + source_schema_ref
         else:
             request_path += 'schemas/?name=' + source_schema_ref
         schema = requests.get(request_path, verify=False)
         json_content = schema.json()['schema']
+        cache.add(source_schema_ref, json_content, timeout=10)
     return json_content
 
 
