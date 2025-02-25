@@ -32,16 +32,21 @@ class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
     publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
-    xss_api = models.CharField(help_text='Enter the XSS API', max_length=200)
+    xss_api = models.CharField(help_text='Enter the XSS API', max_length=200,
+                               blank=True, null=True)
     source_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the '
-                                                        'schema name/IRI')
+                                                        'schema name/IRI',
+                                                        blank=True, null=True)
     target_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the target '
                                                         'schema name/IRI to '
-                                                        'validate from.')
-    source_file = models.FileField(help_text='Upload the source '
-                                             'file')
+                                                        'validate from.',
+                                                        blank=True, null=True)
+    key_fields = models.TextField(default='["p2881_course_profile.Course_ID", "p2881_course_profile.CourseProviderName"]',
+                                         help_text='Enter list of field names '
+                                         'to create metadata key',
+                                         blank=True, null=True)
 
     def get_absolute_url(self):
         """ URL for displaying individual model records."""
@@ -64,7 +69,7 @@ class XIAConfiguration(TimeStampedModel):
         else:
             request_path += 'schemas/?name=' + self.target_metadata_schema
             conf += 'mappings/?targetName=' + self.target_metadata_schema
-        schema = requests.get(request_path)
+        schema = requests.get(request_path, verify=False)
         target = schema.json()['schema']
 
         # Read json file and store as a dictionary for processing
@@ -73,7 +78,7 @@ class XIAConfiguration(TimeStampedModel):
             request_path += '&sourceIRI=' + self.source_metadata_schema
         else:
             request_path += '&sourceName=' + self.source_metadata_schema
-        schema = requests.get(request_path)
+        schema = requests.get(request_path, verify=False)
         mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten

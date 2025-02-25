@@ -27,7 +27,8 @@ class XIAConfigurationAdmin(admin.ModelAdmin):
         'target_metadata_schema',)
     fields = ['publisher', 'xss_api',
               ('source_metadata_schema',
-               'target_metadata_schema')]
+               'target_metadata_schema'),
+               'key_fields']
 
     def delete_queryset(self, request, queryset):
         metadata_fields = MetadataFieldOverwrite.objects.all()

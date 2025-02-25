@@ -1,4 +1,5 @@
 import hashlib
+import io
 import logging
 
 import pandas as pd
@@ -123,7 +124,7 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
         orient='index')
 
     # Flatten source data dictionary for replacing and transformation
-    source_metadata = dict_flatten(source_metadata, required_column_list)
+    # source_metadata = dict_flatten(source_metadata, required_column_list)
 
     # Updating null values with empty strings for replacing metadata
     source_metadata = {
@@ -131,10 +132,14 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
         source_metadata.items()}
 
     # replacing fields to be overwritten or appended
-    metadata_df = pd.DataFrame(source_metadata, index=[0])
+    metadata_df = pd.json_normalize(source_metadata)
     metadata = overwrite_metadata_field(metadata_df)
 
     # Replacing metadata schema with mapped values from source metadata
+
+    for key, value in metadata.items():
+        if not isinstance(value, str):
+            metadata[key] = str(value)
 
     target_schema_replaced = target_schema.replace(metadata)
 
@@ -142,7 +147,8 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
     target_data = target_schema_replaced.apply(lambda x: [x.dropna()],
                                                axis=1).to_json()
     # Creating dataframe from json object
-    target_data_df = pd.read_json(target_data)
+    target_data_df = pd.read_json((io.StringIO(target_data)))
+
 
     # transforming target dataframe to dictionary object for replacing
     # values in target with new value
@@ -239,13 +245,18 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
                 hash_value = hashlib.sha512(
                     str(target_data_dict[ind1]).encode(
                         'utf-8')).hexdigest()
-                store_transformed_source_metadata(key['key_value'],
-                                                  key[
-                                                      'key_value_hash'],
-                                                  target_data_dict[
-                                                      ind1],
-                                                  hash_value,
-                                                  supplemental_metadata)
+                
+                if key['key_value']:
+                    store_transformed_source_metadata(key['key_value'],
+                                                    key[
+                                                        'key_value_hash'],
+                                                    target_data_dict[
+                                                        ind1],
+                                                    hash_value,
+                                                    supplemental_metadata)
+                else:
+                    logger.error("Cannot store record " + 
+                                 str(ind)+" without Key hash value")
 
 
 class Command(BaseCommand):

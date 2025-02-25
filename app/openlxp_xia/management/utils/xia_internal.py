@@ -1,6 +1,8 @@
 import datetime
 import hashlib
+import json
 import logging
+import pandas as pd
 from distutils.util import strtobool
 
 from dateutil.parser import parse
@@ -26,31 +28,53 @@ def get_key_dict(key_value, key_value_hash):
 
 def get_target_metadata_key_value(data_dict):
     """Function to create key value for target metadata """
-    field = {
-        "p2881_course_profile": [
-            "Course_ID",
-            "CourseProviderName"
-        ]
-    }
+
+    xia_data = XIAConfiguration.objects.first()
+    target_key_fields = xia_data.key_fields
+
+    key_fields = json.loads(target_key_fields)
 
     field_values = []
+    data_df = pd.json_normalize(data_dict)
 
-    for item_section in field:
-        for item_name in field[item_section]:
-            if not data_dict[item_section].get(item_name):
-                logger.info('Field name ' + item_name + ' is missing for '
-                                                        'key creation')
-            field_values.append(data_dict[item_section].get(item_name))
+    for field in key_fields:
+        try:
+            value = data_df.at[0, field]
+            field_values.append(value)
+        except KeyError as e:
+            logger.error(e)
+            logger.info('Field name ' + field + ' is missing for '
+                        'key creation')
+            # field_values=[]
+            # break
+
+    # field = {
+    #     "p2881_course_profile": [
+    #         "Course_ID",
+    #         "CourseProviderName"
+    #     ]
+    # }
+
+    # field_values = []
+
+    # for item_section in field:
+    #     for item_name in field[item_section]:
+    #         if not data_dict[item_section].get(item_name):
+    #             logger.info('Field name ' + item_name + ' is missing for '
+    #                                                     'key creation')
+    #         field_values.append(data_dict[item_section].get(item_name))
+    key_value=str()
+    key_value_hash=str()
+    if field_values:
     
-    # Key value creation for source metadata
-    key_value = '_'.join(field_values)
+        # Key value creation for source metadata
+        key_value = '_'.join(field_values)
 
-    # Key value hash creation for source metadata
-    key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
+        # Key value hash creation for source metadata
+        key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
 
-    # Key dictionary creation for source metadata
+        # Key dictionary creation for source metadata
     key = get_key_dict(key_value, key_value_hash)
-
     return key
 
 

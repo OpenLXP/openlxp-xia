@@ -112,7 +112,9 @@ def get_data_types_for_validation(schema_data_dict):
     datatype_to_object = {
         "int": int,
         "str": str,
-        "bool": bool
+        "bool": bool,
+        "list": list,
+        "dict": dict
     }
     expected_data_types = dict()
 
