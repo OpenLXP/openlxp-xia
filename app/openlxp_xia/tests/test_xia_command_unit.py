@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from ddt import ddt
 from django.test import tag
@@ -163,7 +163,7 @@ class CommandTests(TestSetUp):
         target_metadata = type_checking_target_metadata(1, target_metadata,
                                                         self.expected_datatype)
         self.assertIsInstance(target_metadata[0]['General_Information'][
-                                  "EndDate"], str)
+            "StartDate"], str)
 
     def test_get_source_metadata_for_transformation(self):
         """Test to Retrieving Source metadata from MetadataLedger that needs
@@ -201,11 +201,12 @@ class CommandTests(TestSetUp):
                       return_value=None):
             result_data_dict, supplemental_data = create_target_metadata_dict(
                 1, self.source_target_mapping, self.source_metadata,
-                self.test_required_column_names, self.expected_datatype)
-            self.assertEqual(result_data_dict[0]['Course'].get('CourseCode'),
+                self.test_required_column_names, self.expected_datatype,
+                self.expected_datatype)
+            self.assertEqual(result_data_dict['Course'].get('CourseCode'),
                              expected_data_dict[0]['Course'].get('CourseCode'))
             self.assertEqual(
-                result_data_dict[0]['Course'].get('CourseProviderName'),
+                result_data_dict['Course'].get('CourseProviderName'),
                 expected_data_dict[0]['Course'].get('CourseProviderName'))
 
     def test_transform_source_using_key_more_zero(self):
@@ -226,9 +227,10 @@ class CommandTests(TestSetUp):
             mock_store_transformed_source.filter.side_effect = [
                 mock_store_transformed_source, mock_store_transformed_source]
 
-            transform_source_using_key(data, self.source_target_mapping,
+            transform_source_using_key(None, data,
+                                       self.source_target_mapping,
                                        self.test_required_column_names,
-                                       self.expected_datatype)
+                                       self.expected_datatype, {})
 
             self.assertEqual(
                 mock_store_transformed_source.call_count, 0)
@@ -241,10 +243,23 @@ class CommandTests(TestSetUp):
         with patch('openlxp_xia.management.utils.xia_internal'
                    '.get_target_metadata_key_value',
                    return_value=None), \
-                patch('openlxp_xia.management.commands.'
-                      'transform_source_metadata'
-                      '.store_transformed_source_metadata',
-                      return_value=None) as mock_store_transformed_source:
+            patch('openlxp_xia.management.commands.'
+                  'transform_source_metadata'
+                  '.store_transformed_source_metadata',
+                  return_value=None) as mock_store_transformed_source, \
+            patch('openlxp_xia.management.utils.xia_internal'
+                  '.XIAConfiguration.objects') as xiaCfg, \
+            patch('openlxp_xia.management.commands.'
+                  'transform_source_metadata.'
+                  'create_target_metadata_dict') as mock_c, \
+            patch('openlxp_xia.management.commands.'
+                  'transform_source_metadata.'
+                  'get_target_metadata_key_value') as mock_get_target_key:
+            mock_c.return_value = (data, {})
+            xiaCfg.key_fields.return_value = list(["Test_id", "SOURCESYSTEM"])
+            key = {'key_value': self.key_value,
+                   'key_value_hash': self.key_value_hash}
+            mock_get_target_key.return_value = key
             mock_store_transformed_source.return_value = \
                 mock_store_transformed_source
             mock_store_transformed_source.exclude.return_value = \
@@ -252,9 +267,11 @@ class CommandTests(TestSetUp):
             mock_store_transformed_source.filter.side_effect = [
                 mock_store_transformed_source, mock_store_transformed_source]
 
-            transform_source_using_key(data, self.source_target_mapping,
+            transform_source_using_key(None, data,
+                                       self.source_target_mapping,
                                        self.test_required_column_names,
-                                       self.expected_datatype)
+                                       self.expected_datatype,
+                                       {})
 
             self.assertEqual(
                 mock_store_transformed_source.call_count, 2)
@@ -318,10 +335,13 @@ class CommandTests(TestSetUp):
     def test_validate_target_using_key_more_than_one(self):
         """Test to Validating target data against required & recommended
         column names for more than one row"""
+        mock_queryset = MagicMock()
         data = [{'target_metadata_key_hash': 123,
                  'target_metadata': self.target_metadata},
                 {'target_metadata_key_hash': 123,
                  'target_metadata': self.target_metadata}]
+        mock_queryset.values_list.return_value = data
+
         test_required_column_names = {
             'CourseInstance.EndDate', 'CourseInstance.DeliveryMode',
             'CourseInstance.CourseCode', 'CourseInstance.Instructor',
@@ -337,7 +357,8 @@ class CommandTests(TestSetUp):
                    'validate_target_metadata'
                    '.store_target_metadata_validation_status',
                    return_value=None) as mock_store_target_valid_status:
-            validate_target_using_key(data, test_required_column_names,
+            validate_target_using_key(mock_queryset,
+                                      test_required_column_names,
                                       recommended_column_name,
                                       self.expected_datatype)
             self.assertEqual(
@@ -390,7 +411,9 @@ class CommandTests(TestSetUp):
                       '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xisCfg.first.return_value = xiaConfig
-            return_data = rename_metadata_ledger_fields(self.xia_data)
+            xis = self.xis_config
+            return_data = rename_metadata_ledger_fields(xis,
+                                                        self.xia_data)
             self.assertEquals(self.xis_expected_data['metadata_hash'],
                               return_data['metadata_hash'])
             self.assertEquals(self.xis_expected_data['metadata_key'],
@@ -417,13 +440,13 @@ class CommandTests(TestSetUp):
                 target_metadata_key=self.target_key_value,
                 source_metadata_transformation_date=timezone.now(),
                 target_metadata_validation_status='Y',
-                source_metadata_validation_status='Y',
-                target_metadata_transmission_status='Ready')
+                source_metadata_validation_status='Y')
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.values.return_value = [meta_data]
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            get_records_to_load_into_xis()
+            xis = self.xis_config
+            get_records_to_load_into_xis(xis)
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 1)
 
@@ -440,7 +463,8 @@ class CommandTests(TestSetUp):
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            get_records_to_load_into_xis()
+            xis = self.xis_config
+            get_records_to_load_into_xis(xis)
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 0)
 
@@ -473,8 +497,9 @@ class CommandTests(TestSetUp):
             meta_obj.update.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
                                            meta_obj]
+            xis = self.xis_config
 
-            post_data_to_xis(data)
+            post_data_to_xis(xis, data)
             self.assertEqual(response_obj.call_count, 0)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
 
@@ -497,6 +522,9 @@ class CommandTests(TestSetUp):
                 patch('openlxp_xia.management.utils.xis_client.'
                       'XISConfiguration.objects') as xisCfg, \
                 patch('openlxp_xia.management.commands.load_target_metadata.'
+                      'meta_status.objects',
+                      return_value=None), \
+                patch('openlxp_xia.management.commands.load_target_metadata.'
                       'get_records_to_load_into_xis',
                       return_value=None) as mock_check_records_to_load:
             xiaConfig = XIAConfiguration(publisher='AGENT')
@@ -512,8 +540,9 @@ class CommandTests(TestSetUp):
             meta_obj.update.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
                                            meta_obj]
+            xis = self.xis_config
 
-            post_data_to_xis(data)
+            post_data_to_xis(xis, data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
 
@@ -527,8 +556,9 @@ class CommandTests(TestSetUp):
                       '.XIAConfiguration.objects') as xisCfg:
             xiaConfig = XIAConfiguration(publisher='AGENT')
             xisCfg.first.return_value = xiaConfig
+            xis = self.xis_config
             return_data = rename_supplemental_metadata_fields(
-                self.xia_supplemental_data)
+                xis, self.xia_supplemental_data)
             self.assertEquals(
                 self.xis_supplemental_expected_data['metadata_hash'],
                 return_data['metadata_hash'])
@@ -559,14 +589,13 @@ class CommandTests(TestSetUp):
                 supplemental_metadata=self.supplemental_data,
                 supplemental_metadata_hash=self.target_hash_value,
                 supplemental_metadata_key_hash=self.target_key_value_hash,
-                supplemental_metadata_key=self.target_key_value,
-                supplemental_metadata_transmission_date=timezone.now(),
-                supplemental_metadata_transmission_status='Ready')
+                supplemental_metadata_key=self.target_key_value)
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.values.return_value = [meta_data]
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            load_supplemental_metadata_to_xis()
+            xis = self.xis_config
+            load_supplemental_metadata_to_xis(xis)
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 1)
 
@@ -584,7 +613,8 @@ class CommandTests(TestSetUp):
             meta_obj.return_value = meta_obj
             meta_obj.exclude.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj]
-            load_supplemental_metadata_to_xis()
+            xis = self.xis_config
+            load_supplemental_metadata_to_xis(xis)
             self.assertEqual(
                 mock_post_data_to_xis.call_count, 0)
 
@@ -620,8 +650,9 @@ class CommandTests(TestSetUp):
             meta_obj.update.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
                                            meta_obj]
+            xis = self.xis_config
 
-            post_supplemental_metadata_to_xis(data)
+            post_supplemental_metadata_to_xis(xis, data)
             self.assertEqual(response_obj.call_count, 0)
             self.assertEqual(mock_check_records_to_load.call_count, 1)
 
@@ -643,6 +674,10 @@ class CommandTests(TestSetUp):
                     'openlxp_xia.management.commands.'
                     'load_supplemental_metadata'
                     '.SupplementalLedger.objects') as meta_obj, \
+                patch('openlxp_xia.management.commands.'
+                      'load_supplemental_metadata.'
+                      'meta_status.objects',
+                      return_value=None), \
                 patch('requests.post') as response_obj, \
                 patch('openlxp_xia.management.utils.xis_client'
                       '.XISConfiguration.objects') as xisCfg, \
@@ -665,7 +700,8 @@ class CommandTests(TestSetUp):
             meta_obj.update.return_value = meta_obj
             meta_obj.filter.side_effect = [meta_obj, meta_obj, meta_obj,
                                            meta_obj]
+            xis = self.xis_config
 
-            post_supplemental_metadata_to_xis(data)
+            post_supplemental_metadata_to_xis(xis, data)
             self.assertEqual(response_obj.call_count, 2)
             self.assertEqual(mock_check_records_to_load.call_count, 1)

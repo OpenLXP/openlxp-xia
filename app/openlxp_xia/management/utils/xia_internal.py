@@ -12,10 +12,15 @@ from openlxp_xia.models import XIAConfiguration
 logger = logging.getLogger('dict_config_logger')
 
 
-def get_publisher_detail():
+def get_publisher_detail(xia=None):
     """Retrieve publisher from XIA configuration """
     logger.debug("Retrieve publisher from XIA configuration")
-    xia_data = XIAConfiguration.objects.first()
+    if not xia:
+        xia_data = XIAConfiguration.objects.first()
+    else:
+        xia_data = xia
+    if not xia_data:  # pragma: no cover
+        logger.error("XIA configuration is not set.")
     publisher = xia_data.publisher
     return publisher
 
@@ -26,10 +31,16 @@ def get_key_dict(key_value, key_value_hash):
     return key
 
 
-def get_target_metadata_key_value(data_dict):
+def get_target_metadata_key_value(xia, data_dict):
     """Function to create key value for target metadata """
 
-    xia_data = XIAConfiguration.objects.first()
+    if not xia:
+        xia_data = XIAConfiguration.objects.first()
+    else:
+        xia_data = xia
+    if not xia_data:  # pragma: no cover
+        logger.error("XIA configuration is not set.")
+
     target_key_fields = xia_data.key_fields
 
     key_fields = json.loads(target_key_fields)
@@ -40,33 +51,16 @@ def get_target_metadata_key_value(data_dict):
     for field in key_fields:
         try:
             value = data_df.at[0, field]
-            field_values.append(value)
+            field_values.append(str(value))
         except KeyError as e:
             logger.error(e)
             logger.info('Field name ' + field + ' is missing for '
                         'key creation')
-            # field_values=[]
-            # break
 
-    # field = {
-    #     "p2881_course_profile": [
-    #         "Course_ID",
-    #         "CourseProviderName"
-    #     ]
-    # }
-
-    # field_values = []
-
-    # for item_section in field:
-    #     for item_name in field[item_section]:
-    #         if not data_dict[item_section].get(item_name):
-    #             logger.info('Field name ' + item_name + ' is missing for '
-    #                                                     'key creation')
-    #         field_values.append(data_dict[item_section].get(item_name))
-    key_value=str()
-    key_value_hash=str()
+    key_value = str()
+    key_value_hash = str()
     if field_values:
-    
+
         # Key value creation for source metadata
         key_value = '_'.join(field_values)
 
@@ -289,3 +283,38 @@ def traverse_dict_with_key_list(check_key_dict, key_list):
                          "incorrect/ does not exist")
             return check_key_dict
     return check_key_dict
+
+
+def split_by_dot(s):
+    """Split a string by '.' and return a list"""
+    return s.split('.')
+
+
+def get_value_from_path(d, path):
+    # path = split_by_dot(path)
+    # for key in path:
+    #     d = d.get(key, {})
+    d = d.get(path, {})
+    return d if d != {} else None
+
+
+def map_nested(source, mapping):
+    result = {}
+    for k, v in mapping.items():
+        if isinstance(v, dict):
+            result[k] = map_nested(source, v)
+        else:
+            result[k] = get_value_from_path(source, v)
+    return result
+
+# Example mapping:
+# mapping = {
+#     "field1": "source.path1",
+#     "field2": ["static string: ", "source.path2"],
+#     "field3": {"static": "Just a static statement"},
+#     "field4": ["prefix ", {"static": "middle"}, "suffix"]
+# }
+
+
+def is_scalar(value):
+    return not isinstance(value, (list, tuple, set, dict))

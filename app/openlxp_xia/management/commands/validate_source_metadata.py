@@ -7,7 +7,7 @@ from openlxp_xia.management.utils.xia_internal import (
     dict_flatten, required_recommended_logs)
 from openlxp_xia.management.utils.xss_client import (
     get_required_fields_for_validation, get_source_validation_schema)
-from openlxp_xia.models import MetadataLedger
+from openlxp_xia.models import MetadataLedger, XIAConfiguration
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -102,11 +102,36 @@ def validate_source_using_key(source_data_dict, required_column_list,
 class Command(BaseCommand):
     """Django command to validate source data"""
 
+    def add_arguments(self, parser):
+        parser.add_argument('--config_id', type=int, help='ID of the config')
+
     def handle(self, *args, **options):
         """
             Source data is validated and stored in metadataLedger
         """
-        schema_data_dict = get_source_validation_schema()
+        xia = None
+        # Check if xia configuration is provided in options
+        if 'config' in options:
+            xia = options['config'].xia_configuration
+            logger.info(xia)
+        elif 'config_id' in options:
+            # If config_id is provided, fetch the XIAConfiguration object
+            try:
+                xia = XIAConfiguration.objects.get(id=options['config_id'])
+                logger.info(xia)
+            except XIAConfiguration.DoesNotExist:
+                logger.error(f'XIA Configuration with ID'
+                             f' {options["config_id"]}'
+                             ' does not exist')
+                return
+        if not xia:
+            # If xia is not provided, log an error and exit
+            xia = XIAConfiguration.objects.first()
+            if not xia:
+                logger.error('XIA Configuration is not provided')
+                raise SystemExit(
+                    'XIA Configuration is not provided')
+        schema_data_dict = get_source_validation_schema(xia)
         required_column_list, recommended_column_list = \
             get_required_fields_for_validation(schema_data_dict)
         source_data_dict = get_source_metadata_for_validation()

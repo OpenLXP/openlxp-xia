@@ -43,10 +43,11 @@ class XIAConfiguration(TimeStampedModel):
                                                         'schema name/IRI to '
                                                         'validate from.',
                                                         blank=True, null=True)
-    key_fields = models.TextField(default='["p2881_course_profile.Course_ID", "p2881_course_profile.CourseProviderName"]',
-                                         help_text='Enter list of field names '
-                                         'to create metadata key',
-                                         blank=True, null=True)
+    key_fields = models.TextField(default='["p2881_course_profile.Course_ID",'
+                                  '"p2881_course_profile.CourseProviderName"]',
+                                  help_text='Enter list of field names '
+                                  'to create metadata key',
+                                  blank=True, null=True)
 
     def get_absolute_url(self):
         """ URL for displaying individual model records."""
@@ -82,33 +83,68 @@ class XIAConfiguration(TimeStampedModel):
         mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
-        for section in target:
-            for key, val in target[section].items():
-                if "use" in val:
-                    if val["use"] == 'Required':
-                        if section in mapping and key in mapping[section]:
-                            metadata_field_overwrite = MetadataFieldOverwrite()
-                            metadata_field_overwrite.field_name = \
-                                mapping[section][key]
-                            # assigning default value for datatype field
-                            # for metadata
-                            metadata_field_overwrite.field_type = "str"
-                            # assigning datatype field from schema
-                            if "data_type" in val:
-                                metadata_field_overwrite. \
-                                    field_type = val["data_type"]
-                            # logging if datatype for field not present in
-                            # schema
+        for section, section_value in target.items():
+            if "use" not in section_value:
+                # iterating through each key in section
+                for key, val in target[section].items():
+                    if "use" in val:
+                        if val["use"] == 'Required':
+                            if section in mapping and key in mapping[section]:
+                                metadata_field_overwrite = \
+                                    MetadataFieldOverwrite()
+                                metadata_field_overwrite.field_name = \
+                                    mapping[section][key]
+                                # assigning default value for datatype field
+                                # for metadata
+                                metadata_field_overwrite.field_type = "str"
+                                # assigning datatype field from schema
+                                if "data_type" in val:
+                                    metadata_field_overwrite. \
+                                        field_type = val["data_type"]
+                                # logging if datatype for field not present in
+                                # schema
+                                else:
+                                    logger.warning("Datatype for " +
+                                                   "required value " +
+                                                   section + "." + key +
+                                                   " not found in " +
+                                                   "schema mapping")
+                                metadata_field_overwrite.save()
+                            # logging is mapping for
+                            # metadata not present in schema
                             else:
-                                logger.warning("Datatype for required value " +
-                                               section + "." + key +
-                                               " not found in schema mapping")
-                            metadata_field_overwrite.save()
-                        # logging is mapping for metadata not present in schema
+                                logger.error("Mapping for " +
+                                             "required value " +
+                                             section + "." + key +
+                                             " not found in " +
+                                             "schema mapping")
+            else:
+                if section_value["use"] == 'Required':
+
+                    if section in mapping:
+                        metadata_field_overwrite = \
+                            MetadataFieldOverwrite()
+                        metadata_field_overwrite.field_name = \
+                            mapping[section]
+                        # assigning default value for datatype field
+                        # for metadata
+                        metadata_field_overwrite.field_type = "str"
+                        # assigning datatype field from schema
+                        if "data_type" in val:
+                            metadata_field_overwrite. \
+                                field_type = val["data_type"]
+                        # logging if datatype for field not present in
+                        # schema
                         else:
-                            logger.error("Mapping for required value " +
-                                         section + "." + key +
-                                         " not found in schema mapping")
+                            logger.warning("Datatype for required value " +
+                                           section +
+                                           " not found in schema mapping")
+                        metadata_field_overwrite.save()
+                    # logging is mapping for metadata not present in schema
+                    else:
+                        logger.error("Mapping for required value " +
+                                     section +
+                                     " not found in schema mapping")
 
     def save(self, *args, **kwargs):
         # Retrieve list of field required to be overwritten
@@ -128,6 +164,9 @@ class XIAConfiguration(TimeStampedModel):
 class XISConfiguration(TimeStampedModel):
     """Model for XIS Configuration """
 
+    publisher = models.CharField(max_length=200,
+                                 help_text='Enter the publisher name')
+
     xis_metadata_api_endpoint = models.CharField(
         help_text='Enter the XIS Metadata Ledger API endpoint',
         max_length=200
@@ -140,14 +179,8 @@ class XISConfiguration(TimeStampedModel):
 
     xis_api_key = models.CharField(
         help_text="Enter the XIS API Key",
-        max_length=128
+        max_length=512
     )
-
-    def save(self, *args, **kwargs):
-        if not self.pk and XISConfiguration.objects.exists():
-            raise ValidationError('There can be only one XISConfiguration '
-                                  'instance')
-        return super(XISConfiguration, self).save(*args, **kwargs)
 
 
 class MetadataLedger(TimeStampedModel):
@@ -155,8 +188,6 @@ class MetadataLedger(TimeStampedModel):
 
     METADATA_VALIDATION_CHOICES = [('Y', 'Yes'), ('N', 'No')]
     RECORD_ACTIVATION_STATUS_CHOICES = [('Active', 'A'), ('Inactive', 'I')]
-    RECORD_TRANSMISSION_STATUS_CHOICES = [('Successful', 'S'), ('Failed', 'F'),
-                                          ('Pending', 'P'), ('Ready', 'R')]
 
     metadata_record_inactivation_date = models.DateTimeField(blank=True,
                                                              null=True)
@@ -184,13 +215,6 @@ class MetadataLedger(TimeStampedModel):
     target_metadata_hash = models.CharField(max_length=200)
     target_metadata_key = models.TextField()
     target_metadata_key_hash = models.CharField(max_length=200)
-    target_metadata_transmission_date = models.DateTimeField(blank=True,
-                                                             null=True)
-    target_metadata_transmission_status = models.CharField(
-        max_length=10, blank=True, default='Ready',
-        choices=RECORD_TRANSMISSION_STATUS_CHOICES)
-    target_metadata_transmission_status_code = models.IntegerField(blank=True,
-                                                                   null=True)
     target_metadata_validation_date = models.DateTimeField(blank=True,
                                                            null=True)
     target_metadata_validation_status = models.CharField(
@@ -206,6 +230,7 @@ class MetadataLedger(TimeStampedModel):
             self.metadata_record_inactivation_date = timezone.now()
         # cleaning metadata using bleach
         self.source_metadata = bleach_data_to_json(source_data)
+
         return super(MetadataLedger, self).save(*args, **kwargs)
 
 
@@ -238,13 +263,6 @@ class SupplementalLedger(TimeStampedModel):
         blank=True, null=True)
     supplemental_metadata_validation_date = models.DateTimeField(
         blank=True, null=True)
-    supplemental_metadata_transmission_date = models.DateTimeField(
-        blank=True, null=True)
-    supplemental_metadata_transmission_status = models.CharField(
-        max_length=10, blank=True, default='Ready',
-        choices=RECORD_TRANSMISSION_STATUS_CHOICES)
-    supplemental_metadata_transmission_status_code = models.IntegerField(
-        blank=True, null=True)
 
     def save(self, *args, **kwargs):
         source_data = self.supplemental_metadata
@@ -259,6 +277,50 @@ class SupplementalLedger(TimeStampedModel):
         return super(SupplementalLedger, self).save(*args, **kwargs)
 
 
+class metadataTransmissionStatus(TimeStampedModel):
+    """Enumeration for Metadata Transmission Status"""
+    TRANSMISSION_STATUS = [
+        ('Successful', 'S'),
+        ('Failed', 'F'),
+        ('Pending', 'P'),
+        ('Ready', 'R')]
+
+    metadata_record = models.ForeignKey(MetadataLedger,
+                                        on_delete=models.CASCADE)
+    XISConfiguration = models.ForeignKey(XISConfiguration,
+                                         on_delete=models.CASCADE,
+                                         null=True, blank=True)
+    target_metadata_transmission_status = models.CharField(
+        max_length=20, blank=True, default='Ready',
+        choices=TRANSMISSION_STATUS)
+    target_metadata_transmission_status_code = models.IntegerField(
+        blank=True, null=True)
+    target_metadata_transmission_date = models.DateTimeField(blank=True,
+                                                             null=True)
+
+
+class supplementalTransmissionStatus(TimeStampedModel):
+    """Enumeration for Metadata Transmission Status"""
+    TRANSMISSION_STATUS = [
+        ('Successful', 'S'),
+        ('Failed', 'F'),
+        ('Pending', 'P'),
+        ('Ready', 'R')]
+
+    metadata_record = models.ForeignKey(SupplementalLedger,
+                                        on_delete=models.CASCADE)
+    XISConfiguration = models.ForeignKey(XISConfiguration,
+                                         on_delete=models.CASCADE,
+                                         null=True, blank=True)
+    target_metadata_transmission_status = models.CharField(
+        max_length=20, blank=True, default='Ready',
+        choices=TRANSMISSION_STATUS)
+    target_metadata_transmission_status_code = models.IntegerField(
+        blank=True, null=True)
+    target_metadata_transmission_date = models.DateTimeField(blank=True,
+                                                             null=True)
+
+
 class MetadataFieldOverwrite(TimeStampedModel):
     """Model for taking list of fields name and it's values for overwriting
     field values in Source metadata"""
@@ -267,6 +329,7 @@ class MetadataFieldOverwrite(TimeStampedModel):
         ('datetime', 'DATETIME'),
         ('int', 'INTEGER'),
         ('str', 'CHARACTER'),
+        ('URI', 'CHARACTER'),
         ('bool', 'BOOLEAN'),
     )
 

@@ -26,21 +26,32 @@ def bleach_data_to_json(rdata):
     return rdata
 
 
-def confusable_homoglyphs_check(data):
+def is_safe_string(data):
     """Checks for dangerous homoglyphs."""
 
-    data_is_safe = True
-    for key in data:
+    return not (isinstance(data, str) and confusables.is_dangerous(data))
 
-        # if string, Check homoglyph
-        if isinstance(data[key], str) and bool(confusables.
-                                               is_dangerous(data[key])):
-            data_is_safe = False
-            logger.info("Homoglyphs does not have the expected prefered alias")
-            logger.error(categories.unique_aliases(data[key]))
-        # if dict, enter dict
-        if isinstance(data[key], dict):
-            ret_val = confusable_homoglyphs_check(data[key])
-            if not ret_val:
-                data_is_safe = False
-    return data_is_safe
+
+def confusable_homoglyphs_check(d, path=None):
+    """
+    Recursively iterate to every leaf node
+    in a nested dictionary and apply check_func.
+    Returns True if all leaf nodes pass the check, False otherwise.
+    """
+    if path is None:
+        path = []
+    result = True
+    for k, v in d.items():
+        if isinstance(v, dict):
+            if not confusable_homoglyphs_check(v, path + [k]):
+                logger.info(
+                    "Homoglyphs does not have the expected preferred alias")
+                logger.error(categories.unique_aliases(str(v)))
+                result = False
+        else:
+            if not is_safe_string(v):
+                logger.info(
+                    "Homoglyphs does not have the expected preferred alias")
+                logger.error(categories.unique_aliases(str(v)))
+                result = False
+    return result

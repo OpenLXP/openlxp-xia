@@ -62,18 +62,32 @@ class UtilsTests(TestSetUp):
     def test_get_target_metadata_key_value(self, first_value, second_value):
         """Test key dictionary creation for target"""
 
-        test_dict = {'Course': {
-            'CourseCode': first_value,
-            'CourseProviderName': second_value
-        }}
+        with patch('openlxp_xia.models.'
+                   'XIAConfiguration.objects') as xia_config_obj:
+            xia_config_obj.first.return_value = XIAConfiguration(
+                publisher='AGENT',
+                source_metadata_schema='source_validate_schema.json',
+                target_metadata_schema='p2881_target_metadata_schema.json',
+                xss_api='http://xss-api.com',
+                key_fields='["Course.CourseCode",'
+                '"Course.CourseProviderName"]'
+            )
+            xia_config = XIAConfiguration.objects.first()
 
-        expected_key = first_value + '_' + second_value
-        expected_key_hash = hashlib.sha512(expected_key.encode('utf-8')). \
-            hexdigest()
+            test_dict = {'Course': {
+                'CourseCode': first_value,
+                'CourseProviderName': second_value
+            }}
 
-        result_key_dict = get_target_metadata_key_value(test_dict)
-        self.assertEqual(result_key_dict['key_value'], expected_key)
-        self.assertEqual(result_key_dict['key_value_hash'], expected_key_hash)
+            expected_key = first_value + '_' + second_value
+            expected_key_hash = hashlib.sha512(expected_key.encode('utf-8')). \
+                hexdigest()
+
+            result_key_dict = get_target_metadata_key_value(
+                xia_config, test_dict)
+            self.assertEqual(result_key_dict['key_value'], expected_key)
+            self.assertEqual(
+                result_key_dict['key_value_hash'], expected_key_hash)
 
     def test_dict_flatten(self):
         """Test function to navigate to value in source
@@ -469,13 +483,24 @@ class UtilsTests(TestSetUp):
 
     def test_read_json_data(self):
         """Test for retrieving XSS json schemas """
+        xss_api = "http://test_xss_api"
+        schema = {"schema_mapping": {"test": "val"}}
         with patch('openlxp_xia.management.utils.xss_client.xss_get') as \
             xss_host, patch('openlxp_xia.management.utils.xss_client.'
-                            'requests') as req:
-            xss_api = "http://test_xss_api"
-            schema = {"schema": {"test": "val"}}
+                            'requests') as req, \
+            patch('openlxp_xia.management.utils.xss_client'
+                  '.XIAConfiguration.objects') as xia_config_obj:
+            xiaConfig = XIAConfiguration(
+                target_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                source_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                xss_api=xss_api
+            )
+            xia_config_obj.first.return_value = xiaConfig
             xss_host.return_value = xss_api
             req.get.return_value = req
             req.json.return_value = schema
 
-            self.assertEqual(read_json_data(""), schema['schema'])
+            self.assertEqual(read_json_data("", "", ""),
+                             schema['schema_mapping'])
