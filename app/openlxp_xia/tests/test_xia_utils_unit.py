@@ -68,7 +68,7 @@ class UtilsTests(TestSetUp):
                 publisher='AGENT',
                 source_metadata_schema='source_validate_schema.json',
                 target_metadata_schema='p2881_target_metadata_schema.json',
-                xss_api='http://xss-api.com',
+                xss_api='https://xss-api.com',
                 key_fields='["Course.CourseCode",'
                 '"Course.CourseProviderName"]'
             )
