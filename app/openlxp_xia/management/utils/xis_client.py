@@ -20,6 +20,11 @@ def get_xis_metadata_api_endpoint(xis=None):
         logger.error("XIS configuration is not set.")
         raise ValueError("XIS configuration is not set.")
     xis_metadata_api_endpoint = xis_data.xis_metadata_api_endpoint
+    if xis_metadata_api_endpoint[-1] != '/':
+        xis_metadata_api_endpoint += '/'
+    if not xis_metadata_api_endpoint.endswith('api/metadata/'):
+        xis_metadata_api_endpoint += 'api/metadata/'
+
     return xis_metadata_api_endpoint
 
 
@@ -35,6 +40,10 @@ def get_xis_supplemental_metadata_api_endpoint(xis=None):
         logger.error("XIS configuration is not set.")
         raise ValueError("XIS configuration is not set.")
     xis_supplemental_api_endpoint = xis_data.xis_supplemental_api_endpoint
+    if xis_supplemental_api_endpoint[-1] != '/':
+        xis_supplemental_api_endpoint += '/'
+    if not xis_supplemental_api_endpoint.endswith('api/supplemental-data/'):
+        xis_supplemental_api_endpoint += 'api/supplemental-data/'
 
     return xis_supplemental_api_endpoint
 

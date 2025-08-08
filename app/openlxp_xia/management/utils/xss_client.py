@@ -22,6 +22,11 @@ def read_json_data(xia_config, source_schema_ref, target_schema_ref=None):
     """get schema from xss and ingest as dictionary values"""
     xss_host = xss_get(xia_config)
     request_path = xss_host
+
+    if request_path[-1] != '/':
+        request_path += '/'
+    if not request_path.endswith('api/'):
+        request_path += 'api/'
     if (target_schema_ref is not None):
         # check cache for schema
         cached_schema = cache.get(
