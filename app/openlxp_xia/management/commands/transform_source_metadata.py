@@ -6,15 +6,19 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from openlxp_xia.management.utils.xia_internal import (
-    dict_flatten, get_target_metadata_key_value, is_date,
-    replace_field_on_target_schema, required_recommended_logs,
+    get_target_metadata_key_value, is_date, is_scalar, map_nested,
+    required_recommended_logs,
     type_cast_overwritten_values)
 from openlxp_xia.management.utils.xss_client import (
     get_data_types_for_validation, get_required_fields_for_validation,
-    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_scalar_type_for_transformation,
+    get_source_validation_schema,
+    get_target_metadata_for_transformation,
     get_target_validation_schema)
-from openlxp_xia.models import (MetadataFieldOverwrite, MetadataLedger,
-                                SupplementalLedger)
+from openlxp_xia.models import (MetadataFieldOverwrite,
+                                MetadataLedger,
+                                SupplementalLedger,
+                                XIAConfiguration)
 
 logger = logging.getLogger('dict_config_logger')
 
@@ -81,49 +85,86 @@ def overwrite_metadata_field(metadata_df):
     return source_data_dict[0]
 
 
+def transform_target_expected_scalar_type(target_data_dict,
+                                          expected_scalar_type):
+    """Function to transform target data to expected scalar type"""
+    for section in target_data_dict:
+        if isinstance(target_data_dict[section], dict):
+            for key in target_data_dict[section]:
+                item = section + '.' + key
+                # check if item has a expected datatype from schema
+                if item in expected_scalar_type:
+                    # check for expected scalar type for field in metadata
+                    if (expected_scalar_type[item] is False and
+                            not is_scalar(target_data_dict[section][key])):
+                        target_data_dict[section][key] = \
+                            target_data_dict[section][key][0]
+                        logger.warning(
+                            f"Expected scalar type for {item} is False, "
+                            f"converted to {target_data_dict[section][key]}")
+        else:
+            item = section
+            # check if item has a expected datatype from schema
+            if item in expected_scalar_type:
+                # check for expected scalar type for field in metadata
+                if (expected_scalar_type[item] is False and
+                        not is_scalar(target_data_dict[section])):
+                    target_data_dict[section] = target_data_dict[section][0]
+                    logger.warning(
+                        f"Expected scalar type for {item} is False, "
+                        f"converted to {target_data_dict[section]}")
+    return target_data_dict
+
+
 def type_checking_target_metadata(ind, target_data_dict, expected_data_types):
     """Function for type checking and explicit type conversion of metadata"""
-    for index in target_data_dict:
-        for section in target_data_dict[index]:
-            for key in target_data_dict[index][section]:
-                item = section + '.' + key
+
+    # Looping through target data dictionary to check for expected data types
+    for section in target_data_dict:
+        if isinstance(target_data_dict[section], dict):
+            for key in target_data_dict[section]:
+                item = str(section) + '.' + key
                 # check if item has a expected datatype from schema
                 if item in expected_data_types:
                     # check for datetime datatype for field in metadata
                     if expected_data_types[item] == "datetime":
-                        if not is_date(target_data_dict[index][section][key]):
+                        if not is_date(target_data_dict[section][key]):
                             # explicitly convert to string if incorrect
-                            target_data_dict[index][section][key] = str(
-                                target_data_dict[index][section][key])
                             required_recommended_logs(ind, "datatype",
                                                       item)
                     # check for datatype for field in metadata(except datetime)
-                    elif (not isinstance(target_data_dict[index][section][key],
+                    elif (not isinstance(target_data_dict[section][key],
                                          expected_data_types[item])):
                         # explicitly convert to string if incorrect
-                        target_data_dict[index][section][key] = str(
-                            target_data_dict[index][section][key])
                         required_recommended_logs(ind, "datatype",
                                                   item)
-                # explicitly convert to string if datatype not present
-                else:
-                    target_data_dict[index][section][key] = str(
-                        target_data_dict[index][section][key])
+        else:
+            item = section
+            # check if item has a expected datatype from schema
+            if item in expected_data_types:
+                # check for datetime datatype for field in metadata
+                if expected_data_types[item] == "datetime":
+                    if not is_date(target_data_dict[section]):
+                        # explicitly convert to string if incorrect
+                        required_recommended_logs(ind, "datatype",
+                                                  item)
+                # check for datatype for field in metadata(except datetime)
+                elif (not isinstance(target_data_dict[section],
+                                     expected_data_types[item])):
+                    # explicitly convert to string if incorrect
+                    required_recommended_logs(ind, "datatype",
+                                              item)
+            # explicitly convert to string if datatype not present
     return target_data_dict
 
 
 def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
-                                required_column_list, expected_data_types):
+                                required_column_list, expected_data_types,
+                                expected_scalar_type):
     """Function to replace and transform source data to target data for
     using target mapping schema"""
 
-    # Create dataframe using target metadata schema
-    target_schema = pd.DataFrame.from_dict(
-        target_mapping_dict,
-        orient='index')
-
-    # Flatten source data dictionary for replacing and transformation
-    source_metadata = dict_flatten(source_metadata, required_column_list)
+    target_schema = pd.json_normalize(target_mapping_dict)
 
     # Updating null values with empty strings for replacing metadata
     source_metadata = {
@@ -131,26 +172,19 @@ def create_target_metadata_dict(ind, target_mapping_dict, source_metadata,
         source_metadata.items()}
 
     # replacing fields to be overwritten or appended
-    metadata_df = pd.DataFrame(source_metadata, index=[0])
+    metadata_df = pd.json_normalize(source_metadata)
     metadata = overwrite_metadata_field(metadata_df)
 
     # Replacing metadata schema with mapped values from source metadata
 
-    target_schema_replaced = target_schema.replace(metadata)
-
-    # Dropping index value and creating json object
-    target_data = target_schema_replaced.apply(lambda x: [x.dropna()],
-                                               axis=1).to_json()
-    # Creating dataframe from json object
-    target_data_df = pd.read_json(target_data)
-
-    # transforming target dataframe to dictionary object for replacing
-    # values in target with new value
-    target_data_dict = target_data_df.to_dict(orient='index')
+    target_data_dict = map_nested(metadata, target_mapping_dict)
 
     # type checking and explicit type conversion of metadata
     target_data_dict = type_checking_target_metadata(ind, target_data_dict,
                                                      expected_data_types)
+    target_data_dict = \
+        transform_target_expected_scalar_type(target_data_dict,
+                                              expected_scalar_type)
 
     # send values to be skipped while creating supplemental data
 
@@ -210,8 +244,9 @@ def store_transformed_source_metadata(key_value, key_value_hash,
             supplemental_metadata_transformation_date=timezone.now())
 
 
-def transform_source_using_key(source_data_dict, target_mapping_dict,
-                               required_column_list, expected_data_types):
+def transform_source_using_key(xia, source_data_dict, target_mapping_dict,
+                               required_column_list, expected_data_types,
+                               expected_scalar_type):
     """Transforming source data using target metadata schema"""
     logger.info(
         "Transforming source data using target renaming and mapping "
@@ -222,49 +257,80 @@ def transform_source_using_key(source_data_dict, target_mapping_dict,
         "Overwrite & append metadata fields with admin entered values")
     for ind in range(len_source_metadata):
         for table_column_name in source_data_dict[ind]:
+            # Looping through target values in dictionary
             target_data_dict, supplemental_metadata = \
                 create_target_metadata_dict(ind, target_mapping_dict,
                                             source_data_dict
                                             [ind]
                                             [table_column_name],
                                             required_column_list,
-                                            expected_data_types
+                                            expected_data_types,
+                                            expected_scalar_type
                                             )
-            # Looping through target values in dictionary
-            for ind1 in target_data_dict:
-                # Replacing values in field referring target schema
-                replace_field_on_target_schema(ind1,
-                                               target_data_dict)
-                # Key creation for target metadata
-                key = get_target_metadata_key_value(target_data_dict[ind1])
+            # Replacing values in field referring target schema
+            # Key creation for target metadata
+            key = get_target_metadata_key_value(xia, target_data_dict)
 
-                hash_value = hashlib.sha512(
-                    str(target_data_dict[ind1]).encode(
-                        'utf-8')).hexdigest()
+            hash_value = hashlib.sha512(
+                str(target_data_dict).encode(
+                    'utf-8')).hexdigest()
+
+            if key['key_value']:
                 store_transformed_source_metadata(key['key_value'],
                                                   key[
-                                                      'key_value_hash'],
-                                                  target_data_dict[
-                                                      ind1],
-                                                  hash_value,
-                                                  supplemental_metadata)
+                    'key_value_hash'],
+                    target_data_dict,
+                    hash_value,
+                    supplemental_metadata)
+            else:
+                logger.error("Cannot store record " +
+                             str(ind)+" without Key hash value")
 
 
 class Command(BaseCommand):
     """Django command to extract data in the Experience index Agent (XIA)"""
 
+    help = 'Transform source metadata'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--config_id', type=int, help='ID of the config')
+
     def handle(self, *args, **options):
         """
             Metadata is transformed in the XIA and stored in Metadata Ledger
         """
-        target_mapping_dict = get_target_metadata_for_transformation()
+        xia = None
+        # Check if xia configuration is provided in options
+        if 'config' in options:
+            xia = options['config'].xia_configuration
+            logger.info(xia)
+        elif 'config_id' in options:
+            # If config_id is provided, fetch the XIAConfiguration object
+            try:
+                xia = XIAConfiguration.objects.get(id=options['config_id'])
+                logger.info(xia)
+            except XIAConfiguration.DoesNotExist:
+                logger.error(
+                    f'XIA Configuration with ID {options["config_id"]} '
+                    'does not exist')
+                return
+        if not xia:
+            xia = XIAConfiguration.objects.first()
+            if not xia:
+                # If xia is not provided, log an error and exit
+                logger.error('XIA Configuration is not provided')
+                raise SystemExit('XIA Configuration is not provided')
+        target_mapping_dict = get_target_metadata_for_transformation(xia)
         source_data_dict = get_source_metadata_for_transformation()
-        schema_data_dict = get_source_validation_schema()
-        schema_validation = get_target_validation_schema()
+        schema_data_dict = get_source_validation_schema(xia)
+        schema_validation = get_target_validation_schema(xia)
         required_column_list, recommended_column_list = \
             get_required_fields_for_validation(schema_data_dict)
         expected_data_types = get_data_types_for_validation(schema_validation)
-        transform_source_using_key(source_data_dict, target_mapping_dict,
-                                   required_column_list, expected_data_types)
+        expected_scalar_type = get_scalar_type_for_transformation(
+            schema_validation)
+        transform_source_using_key(xia, source_data_dict, target_mapping_dict,
+                                   required_column_list, expected_data_types,
+                                   expected_scalar_type)
 
         logger.info('MetadataLedger updated with transformed data in XIA')

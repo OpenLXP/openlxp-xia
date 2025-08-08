@@ -3,6 +3,8 @@ from uuid import UUID
 import pandas as pd
 from django.test import TestCase
 
+from openlxp_xia.models import XISConfiguration
+
 
 class TestSetUp(TestCase):
     """Class with setup and teardown for tests in XIS"""
@@ -443,6 +445,15 @@ class TestSetUp(TestCase):
 
         self.supplemental_api_endpoint = 'http://openlxp-xis:8020' \
                                          '/api/supplemental-data/'
+
+        self.token = 'test_token'
+
+        self.xis_config = XISConfiguration.objects.create(
+            publisher='AGENT',
+            xis_metadata_api_endpoint=self.xis_api_endpoint_url,
+            xis_supplemental_api_endpoint=self.supplemental_api_endpoint,
+            xis_api_key=self.token
+        )
 
         self.test_required_column_names = ['SOURCESYSTEM',
                                            'KEY',

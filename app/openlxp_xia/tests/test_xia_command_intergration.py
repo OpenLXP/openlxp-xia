@@ -328,7 +328,7 @@ class CommandIntegration(TestSetUp):
             xiaConfig.save()
             result_dict = get_target_validation_schema()
             expected_dict = \
-                read_json_data('p2881_target_validation_schema.json')
+                read_json_data('xss', 'p2881_target_validation_schema.json')
             self.assertEqual(expected_dict, result_dict)
 
     def test_validate_target_using_key(self):

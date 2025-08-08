@@ -25,20 +25,6 @@ The OpenLXP-XIA implements five core workflows after extracting metadata from th
 `Python >=3.7` : Download and install python from here [Python](https://www.python.org/downloads/).
 
 
-## Environment Variables
-
-To run this package along with your project, you will need to add the following environment variables to your .env file
-
-
-`BUCKET_NAME` - S3 Bucket name where schema files are stored
-
-`AWS_ACCESS_KEY_ID` - AWS access keys
-
-`AWS_SECRET_ACCESS_KEY` - AWS access password
-
-`AWS_DEFAULT_REGION` - AWS region
-
-
 # Installation
 
     $ python -m pip install OpenLXP-XIA (use the latest package version)
@@ -61,13 +47,12 @@ INSTALLED_APPS = [
 
     `Xis metadata api endpoint`: API endpoint for XIS where metadata will get stored.
 
-     Example:  
+    Example:  
     `Xis metadata api endpoint`: http://localhost:8080/api/metadata/
 
     `Xis supplemental api endpoint`: API endpoint for XIS where supplemental metadata will get stored.
 
-    Example: 
-
+    Example:  
     `Xis supplemental api endpoint`: http://openlxp-xis:8020/api/supplemental-data/
 
     (Note: Replace localhost with the XIS Host)
@@ -76,14 +61,17 @@ INSTALLED_APPS = [
 3.  `Add xia configuration` : Configure Experience Index Agents(XIA):
 
     `Publisher`: Agent Name
-    
-    `Source metadata schema`: Schema file name for source metadata validation
-    
-    `Source target mapping`: Schema file name for source to target mapping schema file
-    
-    `Target metadata schema`: Schema file name for target metadata validation
 
-    (Note: Please make sure to upload schema files in the Experience Schema Server (XSS). In this case, upload schema files into the S3 bucket. )
+    `Xss api`: API endpoint for XSS where schemas will be retrieved from.
+
+    Example:  
+    `Xss api`: https://localhost:8000/api/
+    
+    `Source metadata schema`: Schema iri or name for source metadata validation
+    
+    `Target metadata schema`: Schema iri or name for target metadata validation
+
+    (Note: Please make sure to upload schema files in the Experience Schema Server (XSS). )
 
 
 4. `Add metadata field overwrite`: Here, we can add new fields and their values or overwrite values for existing fields.

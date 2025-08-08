@@ -1,6 +1,8 @@
 import datetime
 import hashlib
+import json
 import logging
+import pandas as pd
 from distutils.util import strtobool
 
 from dateutil.parser import parse
@@ -10,10 +12,15 @@ from openlxp_xia.models import XIAConfiguration
 logger = logging.getLogger('dict_config_logger')
 
 
-def get_publisher_detail():
+def get_publisher_detail(xia=None):
     """Retrieve publisher from XIA configuration """
     logger.debug("Retrieve publisher from XIA configuration")
-    xia_data = XIAConfiguration.objects.first()
+    if not xia:
+        xia_data = XIAConfiguration.objects.first()
+    else:
+        xia_data = xia
+    if not xia_data:  # pragma: no cover
+        logger.error("XIA configuration is not set.")
     publisher = xia_data.publisher
     return publisher
 
@@ -24,69 +31,44 @@ def get_key_dict(key_value, key_value_hash):
     return key
 
 
-def replace_field_on_target_schema(ind1,
-                                   target_data_dict):
-    """Replacing values in field referring target schema EducationalContext to
-    course.MANDATORYTRAINING"""
-
-    target_name = {
-        "Course": [
-            "EducationalContext",
-        ]
-    }
-    for target_section_name in target_name:
-        for target_field_name in target_name[target_section_name]:
-            if target_data_dict[ind1][target_section_name]. \
-                    get(target_field_name):
-
-                if target_data_dict[ind1][target_section_name][
-                    target_field_name] == 'y' or \
-                        target_data_dict[ind1][
-                            target_section_name][
-                            target_field_name] == 'Y':
-                    target_data_dict[ind1][
-                        target_section_name][
-                        target_field_name] = 'Mandatory'
-                else:
-                    if target_data_dict[ind1][
-                        target_section_name][
-                        target_field_name] == 'n' or \
-                            target_data_dict[ind1][
-                                target_section_name][
-                                target_field_name] == 'N':
-                        target_data_dict[ind1][
-                            target_section_name][
-                            target_field_name] = 'Non - ' \
-                                                 'Mandatory'
-
-
-def get_target_metadata_key_value(data_dict):
+def get_target_metadata_key_value(xia, data_dict):
     """Function to create key value for target metadata """
-    field = {
-        "Course": [
-            "CourseCode",
-            "CourseProviderName"
-        ]
-    }
+
+    if not xia:
+        xia_data = XIAConfiguration.objects.first()
+    else:
+        xia_data = xia
+    if not xia_data:  # pragma: no cover
+        logger.error("XIA configuration is not set.")
+
+    target_key_fields = xia_data.key_fields
+
+    key_fields = json.loads(target_key_fields)
 
     field_values = []
+    data_df = pd.json_normalize(data_dict)
 
-    for item_section in field:
-        for item_name in field[item_section]:
-            if not data_dict[item_section].get(item_name):
-                logger.info('Field name ' + item_name + ' is missing for '
-                                                        'key creation')
-            field_values.append(data_dict[item_section].get(item_name))
+    for field in key_fields:
+        try:
+            value = data_df.at[0, field]
+            field_values.append(str(value))
+        except KeyError as e:
+            logger.error(e)
+            logger.info('Field name ' + field + ' is missing for '
+                        'key creation')
 
-    # Key value creation for source metadata
-    key_value = '_'.join(field_values)
+    key_value = str()
+    key_value_hash = str()
+    if field_values:
 
-    # Key value hash creation for source metadata
-    key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
+        # Key value creation for source metadata
+        key_value = '_'.join(field_values)
 
-    # Key dictionary creation for source metadata
+        # Key value hash creation for source metadata
+        key_value_hash = hashlib.sha512(key_value.encode('utf-8')).hexdigest()
+
+        # Key dictionary creation for source metadata
     key = get_key_dict(key_value, key_value_hash)
-
     return key
 
 
@@ -281,3 +263,58 @@ def type_cast_overwritten_values(field_type, field_value):
         return None
 
     return value
+
+
+def traverse_dict(metadata, key_val):
+    """Function to traverse through dict"""
+    if key_val not in metadata:
+        metadata[key_val] = {}
+    return metadata[key_val]
+
+
+def traverse_dict_with_key_list(check_key_dict, key_list):
+    """Function to traverse through dict with a key list"""
+    for key in key_list[:-1]:
+        if key in check_key_dict:
+            check_key_dict = check_key_dict[key]
+        else:
+            check_key_dict = None
+            logger.error("Path to traverse dictionary is "
+                         "incorrect/ does not exist")
+            return check_key_dict
+    return check_key_dict
+
+
+def split_by_dot(s):
+    """Split a string by '.' and return a list"""
+    return s.split('.')
+
+
+def get_value_from_path(d, path):
+    # path = split_by_dot(path)
+    # for key in path:
+    #     d = d.get(key, {})
+    d = d.get(path, {})
+    return d if d != {} else None
+
+
+def map_nested(source, mapping):
+    result = {}
+    for k, v in mapping.items():
+        if isinstance(v, dict):
+            result[k] = map_nested(source, v)
+        else:
+            result[k] = get_value_from_path(source, v)
+    return result
+
+# Example mapping:
+# mapping = {
+#     "field1": "source.path1",
+#     "field2": ["static string: ", "source.path2"],
+#     "field3": {"static": "Just a static statement"},
+#     "field4": ["prefix ", {"static": "middle"}, "suffix"]
+# }
+
+
+def is_scalar(value):
+    return not isinstance(value, (list, tuple, set, dict))

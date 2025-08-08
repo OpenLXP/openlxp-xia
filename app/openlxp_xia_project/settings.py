@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'openlxp_xia_project.wsgi.application'
 #
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'mysql.connector.django',
         'NAME': os.environ.get('DB_NAME'),
         'USER': os.environ.get('DB_USER'),
         'PASSWORD': os.environ.get('DB_PASSWORD'),
@@ -146,7 +146,7 @@ LOGGING = {
 
     'loggers': {
         'dict_config_logger': {
-            'handlers': ['console', 'file_logs'],
+            'handlers': ['console',],
             'level': 'INFO',
             'propagate': True,
         },
@@ -158,12 +158,12 @@ LOGGING = {
             'stream': sys.stdout,
             'formatter': 'simpleRe',
         },
-        'file_logs': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': LOG_PATH,
-            'formatter': 'simpleRe',
-        },
+        # 'file_logs': {
+        #     'level': 'WARNING',
+        #     'class': 'logging.FileHandler',
+        #     'filename': LOG_PATH,
+        #     'formatter': 'simpleRe',
+        # },
 
     },
 

@@ -12,10 +12,13 @@ from openlxp_xia.management.utils.xis_client import \
     posting_metadata_ledger_to_xis
 from openlxp_xia.models import MetadataLedger
 
+from openlxp_xia.models import (XISConfiguration,
+                                metadataTransmissionStatus as meta_status)
+
 logger = logging.getLogger('dict_config_logger')
 
 
-def rename_metadata_ledger_fields(data):
+def rename_metadata_ledger_fields(xis, data):
     """Renaming XIA column names to match with XIS column names"""
     data['unique_record_identifier'] = data.pop('metadata_record_uuid')
     data['metadata'] = data.pop('target_metadata')
@@ -23,86 +26,146 @@ def rename_metadata_ledger_fields(data):
     data['metadata_key'] = data.pop('target_metadata_key')
     data['metadata_key_hash'] = data.pop('target_metadata_key_hash')
     # Adding Publisher in the list to POST to XIS
-    data['provider_name'] = get_publisher_detail()
+    data['provider_name'] = get_publisher_detail(xis)
     return data
 
 
-def post_data_to_xis(data):
+def post_data_to_xis(xis, data):
     """POSTing XIA metadata_ledger to XIS metadata_ledger"""
     # Traversing through each row one by one from data
     for row in data:
-        data = rename_metadata_ledger_fields(row)
+        data = rename_metadata_ledger_fields(xis, row)
         renamed_data = json.dumps(data, cls=DjangoJSONEncoder)
 
         # Getting UUID to update target_metadata_transmission_status to pending
         uuid_val = data.get('unique_record_identifier')
 
         # Updating status in XIA metadata_ledger to 'Pending'
-        MetadataLedger.objects.filter(
-            metadata_record_uuid=uuid_val).update(
-            target_metadata_transmission_status='Pending')
 
-        # POSTing data to XIS
-        try:
-            xis_response = posting_metadata_ledger_to_xis(renamed_data)
+        metadata_record = MetadataLedger.objects.filter(
+            metadata_record_uuid=uuid_val).first()
 
-            # Receiving XIS response after validation and updating
-            # metadata_ledger
-            if xis_response.status_code == 201:
-                MetadataLedger.objects.filter(
-                    metadata_record_uuid=uuid_val).update(
-                    target_metadata_transmission_status_code=xis_response.
-                        status_code,
-                    target_metadata_transmission_status='Successful',
-                    target_metadata_transmission_date=timezone.now())
-            else:
-                MetadataLedger.objects.filter(
-                    metadata_record_uuid=uuid_val).update(
-                    target_metadata_transmission_status_code=xis_response.
-                        status_code,
-                    target_metadata_transmission_status='Failed',
-                    target_metadata_transmission_date=timezone.now())
-                logger.warning(
-                    "Bad request sent " + str(xis_response.status_code)
-                    + "error found " + xis_response.text)
-        except requests.exceptions.RequestException as e:
-            logger.error(e)
-            # Updating status in XIA metadata_ledger to 'Failed'
-            MetadataLedger.objects.filter(
-                metadata_record_uuid=uuid_val).update(
-                target_metadata_transmission_status='Failed')
-            raise SystemExit('Exiting! Can not make connection with XIS.')
+        if metadata_record:
 
-    get_records_to_load_into_xis()
+            trans_status = meta_status.objects.filter(
+                metadata_record=metadata_record,
+                XISConfiguration=xis
+            ).first()
+
+            trans_status.target_metadata_transmission_status = 'Pending'
+
+            # POSTing data to XIS
+            try:
+                xis_response = posting_metadata_ledger_to_xis(xis,
+                                                              renamed_data)
+
+                # Receiving XIS response after validation and updating
+                # metadata_ledger
+                if xis_response.status_code == 201:
+                    trans_status.target_metadata_transmission_status = \
+                        'Successful'
+                    trans_status.target_metadata_transmission_date = \
+                        timezone.now()
+                    trans_status.target_metadata_transmission_status_code = \
+                        xis_response.status_code
+                    logger.info(
+                        "Data " + str(metadata_record) +
+                        "successfully posted to XIS with status code "
+                        + str(xis_response.status_code))
+                else:
+                    trans_status.target_metadata_transmission_status = 'Failed'
+                    trans_status.target_metadata_transmission_date = \
+                        timezone.now()
+                    trans_status.target_metadata_transmission_status_code = \
+                        xis_response.status_code
+                    logger.warning(
+                        "Bad request sent " + str(xis_response.status_code)
+                        + "error found " + xis_response.text)
+                trans_status.save()
+            except requests.exceptions.RequestException as e:
+                logger.error(e)
+                # Updating status in XIA metadata_ledger to 'Failed'
+                trans_status.target_metadata_transmission_status = 'Failed'
+                trans_status.save()
+                raise SystemExit(
+                    'Exiting! Can not make connection with XIS.')
+    get_records_to_load_into_xis(xis)
 
 
-def get_records_to_load_into_xis():
+def get_records_to_load_into_xis(xis):
     """Retrieve number of Metadata_Ledger records in XIA to load into XIS  and
     calls the post_data_to_xis accordingly"""
-    combined_query = MetadataLedger.objects.filter(
-        Q(target_metadata_transmission_status='Ready') | Q(
-            target_metadata_transmission_status='Failed'))
 
-    data = combined_query.filter(
-        record_lifecycle_status='Active').exclude(
-        target_metadata_transmission_status_code=400).values(
-        'metadata_record_uuid',
-        'target_metadata',
-        'target_metadata_hash',
-        'target_metadata_key',
-        'target_metadata_key_hash')
+    records = MetadataLedger.objects.filter(
+        record_lifecycle_status='Active',
+        target_metadata_validation_status='Y')
 
-    # Checking available no. of records in XIA to load into XIS is Zero or not
-    if len(data) == 0:
-        logger.info("Data Loading in XIS is complete, Zero records are "
-                    "available in XIA to transmit")
-    else:
-        post_data_to_xis(data)
+    if xis:
+        for record in records:
+            meta_status.objects.get_or_create(
+                metadata_record=record,
+                XISConfiguration=xis,
+                defaults={'target_metadata_transmission_status': 'Ready'}
+            )
+        combined_query = meta_status.objects.filter(
+            Q(target_metadata_transmission_status='Ready') | Q(
+                target_metadata_transmission_status='Failed') | Q(
+                target_metadata_transmission_status='Pending') &
+            Q(XISConfiguration=xis))
+
+        data = MetadataLedger.objects.filter(
+            meta_status__in=combined_query,
+            record_lifecycle_status='Active'
+        ).exclude(
+            meta_status__target_metadata_transmission_status_code=400
+        ).values(
+            'metadata_record_u'
+            'uid',
+            'target_metadata',
+            'target_metadata_hash',
+            'target_metadata_key',
+            'target_metadata_key_hash'
+        )
+
+        # Checking available no. of records in XIA to
+        # load into XIS is Zero or not
+        if len(data) == 0:
+            logger.info("Data Loading in XIS is complete, Zero records are "
+                        "available in XIA to transmit")
+        else:
+            post_data_to_xis(xis, data)
 
 
 class Command(BaseCommand):
     """Django command to load metadata in the Experience Index Service (XIS)"""
 
+    def add_arguments(self, parser):
+        parser.add_argument('--config_id', type=int, help='ID of the config')
+
     def handle(self, *args, **options):
         """Metadata is load from XIA Metadata_Ledger to XIS Metadata_Ledger"""
-        get_records_to_load_into_xis()
+
+        xis = None
+        if 'config' in options:
+            xis = options['config'].xis_configuration
+            logger.info(xis)
+        elif 'config_id' in options:
+            # If config_id is provided, fetch the XISConfiguration object
+            try:
+                xis = XISConfiguration.objects.get(id=options['config_id'])
+                logger.info(xis)
+            except XISConfiguration.DoesNotExist:
+                logger.error(
+                    f'XIS Configuration with ID {options["config_id"]} '
+                    'does not exist')
+                return
+
+        if not xis:
+            # If xis is not provided, log an error and exit
+            xis = XISConfiguration.objects.first()
+
+            if not xis:
+                logger.error('XIS Configuration is not provided')
+                raise SystemExit('XIS Configuration is not provided')
+
+        get_records_to_load_into_xis(xis)

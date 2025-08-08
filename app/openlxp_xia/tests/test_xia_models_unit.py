@@ -16,18 +16,17 @@ class ModelTests(TestCase):
         """Test that creating a new XIA Configuration entry is successful
         with defaults """
         source_metadata_schema = 'test_file.json'
-        source_target_mapping = 'test_file.json'
+        xss_api = 'https://localhost'
         target_metadata_schema = 'test_file.json'
 
         xiaConfig = XIAConfiguration(
             source_metadata_schema=source_metadata_schema,
-            source_target_mapping=source_target_mapping,
+            xss_api=xss_api,
             target_metadata_schema=target_metadata_schema)
 
         self.assertEqual(xiaConfig.source_metadata_schema,
                          source_metadata_schema)
-        self.assertEqual(xiaConfig.source_target_mapping,
-                         source_target_mapping)
+        self.assertEqual(xiaConfig.xss_api, xss_api)
         self.assertEqual(xiaConfig.target_metadata_schema,
                          target_metadata_schema)
 
@@ -38,14 +37,31 @@ class ModelTests(TestCase):
             with self.assertRaises(ValidationError):
                 xiaConfig = \
                     XIAConfiguration(source_metadata_schema="example1.json",
-                                     source_target_mapping="example1.json",
+                                     xss_api="https://localhost",
                                      target_metadata_schema="example1.json")
                 xiaConfig2 = \
                     XIAConfiguration(source_metadata_schema="example2.json",
-                                     source_target_mapping="example2.json",
+                                     xss_api="https://localhost",
                                      target_metadata_schema="example2.json")
                 xiaConfig.save()
                 xiaConfig2.save()
+
+    def test_xia_field_overwrite(self):
+        """Test that field_overwrite in an XIA Configuration generates
+        MetadataFieldOverwrite objects """
+        with patch("openlxp_xia.models.requests") as mock:
+            target_schema = {"schema": {
+                "start": {"test": {"use": "Required"}}}}
+            transform_schema = {"schema_mapping": {
+                "start": {"test": "start.test"}}}
+            mock.get.return_value = mock
+            mock.json.side_effect = [target_schema, transform_schema]
+            xiaConfig = \
+                XIAConfiguration(source_metadata_schema="example1.json",
+                                 xss_api="https://localhost",
+                                 target_metadata_schema="example1.json")
+            xiaConfig.save()
+            self.assertEqual(MetadataFieldOverwrite.objects.count(), 1)
 
     def test_create_xis_configuration(self):
         """Test that creating a new XIS Configuration entry is successful
@@ -63,7 +79,8 @@ class ModelTests(TestCase):
                          xis_supplemental_api_endpoint)
 
     def test_metadata_ledger(self):
-        """Test for a new Metadata_Ledger entry is successful with defaults"""
+        """Test for a new Metadata_Ledger entry
+        is successful with defaults"""
         metadata_record_inactivate_date = timezone.now()
         record_lifecycle_status = 'Active'
         source_metadata = ''
@@ -78,9 +95,6 @@ class ModelTests(TestCase):
         target_metadata_hash = '74df499f177d0a7adb3e610302abc6a5'
         target_metadata_key = 'AGENT_test_key'
         target_metadata_key_hash = '74df499f177d0a7adb3e610302abc6a5'
-        target_metadata_transmit_date = timezone.now()
-        target_meta_transmit_status = 'Ready'
-        target_transmit_st_code = 200
         target_metadata_validation_date = timezone.now()
         target_metadata_validation_status = 'Y'
 
@@ -99,9 +113,6 @@ class ModelTests(TestCase):
             target_metadata_hash=target_metadata_hash,
             target_metadata_key=target_metadata_key,
             target_metadata_key_hash=target_metadata_key_hash,
-            target_metadata_transmission_date=target_metadata_transmit_date,
-            target_metadata_transmission_status=target_meta_transmit_status,
-            target_metadata_transmission_status_code=target_transmit_st_code,
             target_metadata_validation_date=target_metadata_validation_date,
             target_metadata_validation_status=target_metadata_validation_status
         )
@@ -132,13 +143,6 @@ class ModelTests(TestCase):
                          target_metadata_key)
         self.assertEqual(metadataLedger.target_metadata_key_hash,
                          target_metadata_key_hash)
-        self.assertEqual(metadataLedger.target_metadata_transmission_date,
-                         target_metadata_transmit_date)
-        self.assertEqual(metadataLedger.target_metadata_transmission_status,
-                         target_meta_transmit_status)
-        self.assertEqual(
-            metadataLedger.target_metadata_transmission_status_code,
-            target_transmit_st_code)
         self.assertEqual(metadataLedger.target_metadata_validation_date,
                          target_metadata_validation_date)
         self.assertEqual(metadataLedger.target_metadata_validation_status,
@@ -156,9 +160,6 @@ class ModelTests(TestCase):
         supplemental_metadata_key = 'AGENT_test_key'
         supplemental_metadata_key_hash = 'f6df40fbbf4a4c4091fbf64c9b6458e0'
         supp_meta_transform_date = timezone.now()
-        supp_meta_transmit_date = timezone.now()
-        supp_meta_transmit_stat = 'Ready'
-        supp_meta_stat_cd = 200
 
         supplemental_ledger = SupplementalLedger(
             metadata_record_inactivation_date=metadata_record_inactivate_date,
@@ -169,10 +170,6 @@ class ModelTests(TestCase):
             supplemental_metadata_key=supplemental_metadata_key,
             supplemental_metadata_key_hash=supplemental_metadata_key_hash,
             supplemental_metadata_transformation_date=supp_meta_transform_date,
-            supplemental_metadata_transmission_date=supp_meta_transmit_date,
-            supplemental_metadata_transmission_status=supp_meta_transmit_stat,
-            supplemental_metadata_transmission_status_code=supp_meta_stat_cd
-
         )
 
         self.assertEqual(supplemental_ledger.metadata_record_inactivation_date,
@@ -193,15 +190,6 @@ class ModelTests(TestCase):
         self.assertEqual(supplemental_ledger.
                          supplemental_metadata_transformation_date,
                          supp_meta_transform_date)
-        self.assertEqual(supplemental_ledger.
-                         supplemental_metadata_transmission_date,
-                         supp_meta_transmit_date)
-        self.assertEqual(supplemental_ledger.
-                         supplemental_metadata_transmission_status,
-                         supp_meta_transmit_stat)
-        self.assertEqual(supplemental_ledger.
-                         supplemental_metadata_transmission_status_code,
-                         supp_meta_stat_cd)
 
     def test_metadata_field_overwrite(self):
         """Test that creating a new Metadata Field Overwrite entry is
