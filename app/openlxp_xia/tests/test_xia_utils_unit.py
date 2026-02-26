@@ -13,9 +13,9 @@ from openlxp_xia.management.utils.xia_internal import (
 from openlxp_xia.management.utils.xis_client import (
     get_xis_metadata_api_endpoint, get_xis_supplemental_metadata_api_endpoint)
 from openlxp_xia.management.utils.xss_client import (
-    get_aws_bucket_name, get_data_types_for_validation,
-    get_required_fields_for_validation, get_source_validation_schema,
-    get_target_metadata_for_transformation, get_target_validation_schema)
+    get_data_types_for_validation, get_required_fields_for_validation,
+    get_source_validation_schema, get_target_metadata_for_transformation,
+    get_target_validation_schema, read_json_data, xss_get)
 from openlxp_xia.models import XIAConfiguration, XISConfiguration
 
 from .test_setup import TestSetUp
@@ -410,19 +410,12 @@ class UtilsTests(TestSetUp):
 
     # Test cases for XSS_CLIENT
 
-    def test_get_aws_bucket_name(self):
-        """Test the function which returns the source bucket name"""
-        result_bucket = get_aws_bucket_name()
-        self.assertTrue(result_bucket)
-
     def test_get_source_validation_schema(self):
         """Test to retrieve source_metadata_schema from XIA configuration"""
         with patch('openlxp_xia.management.utils.xss_client'
                    '.XIAConfiguration.objects') as xdsCfg, \
                 patch('openlxp_xia.management.utils.xss_client'
-                      '.read_json_data') as read_obj, \
-                patch('openlxp_xia.management.utils.xss_client'
-                      '.get_aws_bucket_name', return_value="eccschema"):
+                      '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
                 source_metadata_schema='AGENT_source_validate_schema.json')
             xdsCfg.return_value = xiaConfig
@@ -470,7 +463,10 @@ class UtilsTests(TestSetUp):
                 patch('openlxp_xia.management.utils.xss_client'
                       '.read_json_data') as read_obj:
             xiaConfig = XIAConfiguration(
-                source_target_mapping='AGENT_p2881_target_metadata_schema.json'
+                target_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                source_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json'
             )
             xia_config_obj.return_value = xiaConfig
             read_obj.return_value = read_obj
@@ -478,3 +474,32 @@ class UtilsTests(TestSetUp):
             return_from_function = get_target_metadata_for_transformation()
             self.assertEqual(read_obj.return_value,
                              return_from_function)
+
+    def test_xss_get(self):
+        """Test for retrieving XSS api root """
+        with patch('openlxp_xia.management.utils.xss_client'
+                   '.XIAConfiguration.objects') as xia_config_obj:
+            xss_api = "http://test_xss_api"
+            xiaConfig = XIAConfiguration(
+                target_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                source_metadata_schema='AGENT_p2881_target_metadata_schema' +
+                '.json',
+                xss_api=xss_api
+            )
+            xia_config_obj.first.return_value = xiaConfig
+
+            self.assertEqual(xss_get(), xss_api)
+
+    def test_read_json_data(self):
+        """Test for retrieving XSS json schemas """
+        with patch('openlxp_xia.management.utils.xss_client.xss_get') as \
+            xss_host, patch('openlxp_xia.management.utils.xss_client.'
+                            'requests') as req:
+            xss_api = "http://test_xss_api"
+            schema = {"schema": {"test": "val"}}
+            xss_host.return_value = xss_api
+            req.get.return_value = req
+            req.json.return_value = schema
+
+            self.assertEqual(read_json_data(""), schema['schema'])

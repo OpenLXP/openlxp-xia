@@ -1,31 +1,39 @@
-import json
 import logging
-import os
 import uuid
 
-import boto3
+import requests
 from django.db import models
 from django.forms import ValidationError
+from django.core.validators import RegexValidator
 from django.urls import reverse
+from openlxp_xia.management.utils.model_help import confusable_homoglyphs_check
+from openlxp_xia.management.utils.model_help import bleach_data_to_json
 from model_utils.models import TimeStampedModel
 
 logger = logging.getLogger('dict_config_logger')
+
+
+rcheck = (r'(?!(\A( \x09\x0A\x0D\x20-\x7E # ASCII '
+          r'| \xC2-\xDF # non-overlong 2-byte '
+          r'| \xE0\xA0-\xBF # excluding overlongs '
+          r'| \xE1-\xEC\xEE\xEF{2} # straight 3-byte '
+          r'| \xED\x80-\x9F # excluding surrogates '
+          r'| \xF0\x90-\xBF{2} # planes 1-3 '
+          r'| \xF1-\xF3{3} # planes 4-15 '
+          r'| \xF4\x80-\x8F{2} # plane 16 )*\Z))')
 
 
 class XIAConfiguration(TimeStampedModel):
     """Model for XIA Configuration """
     publisher = models.CharField(max_length=200,
                                  help_text='Enter the publisher name')
+    xss_api = models.CharField(help_text='Enter the XSS API', max_length=200)
     source_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the '
-                                                        'schema file')
-    source_target_mapping = models.CharField(max_length=200,
-                                             help_text='Enter the schema '
-                                                       'file to map '
-                                                       'target.')
+                                                        'schema name/IRI')
     target_metadata_schema = models.CharField(max_length=200,
                                               help_text='Enter the target '
-                                                        'schema file to '
+                                                        'schema name/IRI to '
                                                         'validate from.')
     source_file = models.FileField(help_text='Upload the source '
                                              'file')
@@ -42,17 +50,26 @@ class XIAConfiguration(TimeStampedModel):
         # Deleting the corresponding existing value to overwrite
         MetadataFieldOverwrite.objects.all().delete()
         # get required columns list from schema files
-        s3 = boto3.resource('s3')
-        bucket_name = os.environ.get('BUCKET_NAME')
+        conf = self.xss_api
         # Read json file and store as a dictionary for processing
-        mapping_path = s3.Object(bucket_name, self.source_target_mapping)
-        mapping_content = mapping_path.get()['Body'].read().decode('utf-8')
-        mapping = json.loads(mapping_content)
+        request_path = conf
+        if (self.target_metadata_schema.startswith('xss:')):
+            request_path += 'schemas/?iri=' + self.target_metadata_schema
+            conf += 'mappings/?targetIRI=' + self.target_metadata_schema
+        else:
+            request_path += 'schemas/?name=' + self.target_metadata_schema
+            conf += 'mappings/?targetName=' + self.target_metadata_schema
+        schema = requests.get(request_path, verify=True)
+        target = schema.json()['schema']
 
         # Read json file and store as a dictionary for processing
-        target_path = s3.Object(bucket_name, self.target_metadata_schema)
-        target_content = target_path.get()['Body'].read().decode('utf-8')
-        target = json.loads(target_content)
+        request_path = conf
+        if (self.source_metadata_schema.startswith('xss:')):
+            request_path += '&sourceIRI=' + self.source_metadata_schema
+        else:
+            request_path += '&sourceName=' + self.source_metadata_schema
+        schema = requests.get(request_path, verify=True)
+        mapping = schema.json()['schema_mapping']
 
         # saving required column values to be overwritten
         for section in target:
@@ -111,6 +128,11 @@ class XISConfiguration(TimeStampedModel):
         max_length=200
     )
 
+    xis_api_key = models.CharField(
+        help_text="Enter the XIS API Key",
+        max_length=128
+    )
+
     def save(self, *args, **kwargs):
         if not self.pk and XISConfiguration.objects.exists():
             raise ValidationError('There can be only one XISConfiguration '
@@ -132,7 +154,12 @@ class MetadataLedger(TimeStampedModel):
                                             default=uuid.uuid4, editable=False)
     record_lifecycle_status = models.CharField(
         max_length=10, blank=True, choices=RECORD_ACTIVATION_STATUS_CHOICES)
-    source_metadata = models.JSONField(blank=True)
+    source_metadata = models.JSONField(blank=True,
+                                       validators=[RegexValidator(regex=rcheck,
+                                                                  message="The"
+                                                                  " Wrong "
+                                                                  "Format "
+                                                                  "Entered")])
     source_metadata_extraction_date = models.DateTimeField(auto_now_add=True)
     source_metadata_hash = models.CharField(max_length=200)
     source_metadata_key = models.TextField()
@@ -159,6 +186,11 @@ class MetadataLedger(TimeStampedModel):
     target_metadata_validation_status = models.CharField(
         max_length=10, blank=True, choices=METADATA_VALIDATION_CHOICES)
 
+    def clean(self):
+        source_data = self.source_metadata
+        data_checked = confusable_homoglyphs_check(source_data)
+        self.source_metadata = bleach_data_to_json(data_checked)
+
 
 class SupplementalLedger(TimeStampedModel):
     """Model for Supplemental Metadata """
@@ -173,7 +205,13 @@ class SupplementalLedger(TimeStampedModel):
                                             default=uuid.uuid4, editable=False)
     record_lifecycle_status = models.CharField(
         max_length=10, blank=True, choices=RECORD_ACTIVATION_STATUS_CHOICES)
-    supplemental_metadata = models.JSONField(blank=True)
+    supplemental_metadata = models.JSONField(blank=True,
+                                             validators=[RegexValidator
+                                                         (regex=rcheck,
+                                                          message="The"
+                                                                  " Wrong "
+                                                                  "Format "
+                                                                  "Entered")])
     supplemental_metadata_extraction_date = models.DateTimeField(
         auto_now_add=True)
     supplemental_metadata_hash = models.CharField(max_length=200)
@@ -190,6 +228,11 @@ class SupplementalLedger(TimeStampedModel):
         choices=RECORD_TRANSMISSION_STATUS_CHOICES)
     supplemental_metadata_transmission_status_code = models.IntegerField(
         blank=True, null=True)
+
+    def clean(self):
+        supplemental_data = self.supplemental_metadata
+        data_checked = confusable_homoglyphs_check(supplemental_data)
+        self.supplemental_metadata = bleach_data_to_json(data_checked)
 
 
 class MetadataFieldOverwrite(TimeStampedModel):

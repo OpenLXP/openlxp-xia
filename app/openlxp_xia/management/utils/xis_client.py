@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from requests.auth import AuthBase
 
 from openlxp_xia.models import XISConfiguration
 
@@ -32,7 +33,8 @@ def posting_metadata_ledger_to_xis(renamed_data):
     headers = {'Content-Type': 'application/json'}
 
     xis_response = requests.post(url=get_xis_metadata_api_endpoint(),
-                                 data=renamed_data, headers=headers)
+                                 data=renamed_data, headers=headers,
+                                 auth=TokenAuth())
     return xis_response
 
 
@@ -43,5 +45,16 @@ def posting_supplemental_metadata_to_xis(renamed_data):
 
     xis_response = requests.post(
         url=get_xis_supplemental_metadata_api_endpoint(), data=renamed_data,
-        headers=headers)
+        headers=headers, auth=TokenAuth())
     return xis_response
+
+
+class TokenAuth(AuthBase):
+    """Attaches HTTP Authentication Header to the given Request object."""
+
+    def __call__(self, r, token_name='token'):
+        # modify and return the request
+
+        r.headers['Authorization'] = token_name + ' ' + \
+            XISConfiguration.objects.first().xis_api_key
+        return r
